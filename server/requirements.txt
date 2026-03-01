@@ -4,11 +4,11 @@ uvicorn
 pydantic
 rich
 python-multipart
-tensorflow==2.13.0
+tensorflow>=2.16.0
+tensorflow-addons
 numpy
 pillow
 vit-keras
-tensorflow-addons
 typing-extensions
 opencv-python
 matplotlib

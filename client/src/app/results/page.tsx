@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { Download, Printer, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -379,8 +380,14 @@ export default function Results() {
             </div>
           </div>
         ) : (
-          <div className="bg-white backdrop-blur-sm bg-opacity-90 rounded-2xl shadow-xl border border-gray-100 p-8">
-            <p className="text-center text-gray-500">No analysis results available yet.</p>
+          <div className="bg-white backdrop-blur-sm bg-opacity-90 rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
+            <p className="text-gray-500 mb-4">No analysis results available yet.</p>
+            <Link
+              href="/detect"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Start your first analysis
+            </Link>
           </div>
         )}
       </div>

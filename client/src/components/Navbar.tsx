@@ -21,6 +21,13 @@ export function Navbar() {
               className={`inline-flex items-center px-1 pt-1 text-sm font-medium border-b-2 transition-colors
                 ${pathname === '/' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent hover:text-gray-900 hover:border-gray-300'}`}
             >
+              Home
+            </Link>
+            <Link 
+              href="/detect" 
+              className={`inline-flex items-center px-1 pt-1 text-sm font-medium border-b-2 transition-colors
+                ${pathname === '/detect' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent hover:text-gray-900 hover:border-gray-300'}`}
+            >
               <Activity className="h-4 w-4 mr-2" />
               Analyze Scan
             </Link>
