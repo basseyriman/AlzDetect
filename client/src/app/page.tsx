@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Brain, Activity, BarChart2, ArrowRight, Shield, Zap } from "lucide-react";
+import { Brain, Activity, ArrowRight, Shield, Zap } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 
 export default function LandingPage() {
