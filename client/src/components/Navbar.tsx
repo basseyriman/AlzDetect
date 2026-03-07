@@ -43,6 +43,14 @@ export function Navbar() {
               <BarChart2 className="h-4 w-4 mr-2" />
               Results
             </Link>
+            <Link
+              href="/research"
+              className={`flex items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300
+                ${pathname.startsWith('/research') ? 'text-indigo-600 bg-indigo-50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              Research
+            </Link>
           </div>
         </div>
       </div>

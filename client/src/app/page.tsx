@@ -29,9 +29,9 @@ export default function LandingPage() {
                   Start AI Analysis
                   <ArrowRight className="w-5 h-5" />
                 </Link>
-                <button className="px-8 py-4 text-slate-600 font-semibold rounded-2xl border border-slate-200 hover:bg-white hover:shadow-sm transition-all flex items-center gap-2">
+                <Link href="/demo" className="px-8 py-4 text-slate-600 font-semibold rounded-2xl border border-slate-200 hover:bg-white hover:shadow-sm transition-all flex items-center gap-2">
                   View Demo
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -273,9 +273,9 @@ export default function LandingPage() {
               <Link href="/detect" className="px-12 py-5 bg-white text-indigo-900 rounded-[2rem] font-black shadow-2xl hover:bg-indigo-50 transition-all transform hover:-translate-y-1 active:scale-95">
                 Analyze Scan Now
               </Link>
-              <button className="px-12 py-5 bg-indigo-800/30 text-white rounded-[2rem] border border-indigo-700 font-bold hover:bg-indigo-800 transition-all">
+              <Link href="/research/methodology" className="px-12 py-5 bg-indigo-800/30 text-white rounded-[2rem] border border-indigo-700 font-bold hover:bg-indigo-800 transition-all text-center">
                 Read Methodology
-              </button>
+              </Link>
             </div>
           </div>
         </section>
@@ -331,18 +331,18 @@ export default function LandingPage() {
             <div className="space-y-8">
               <h6 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Research</h6>
               <ul className="space-y-5 text-slate-500 text-sm font-medium">
-                <li><span className="hover:text-indigo-600 transition-all cursor-pointer">Methodology Spec</span></li>
-                <li><span className="hover:text-indigo-600 transition-all cursor-pointer">Academic Protocol</span></li>
-                <li><span className="hover:text-indigo-600 transition-all cursor-pointer">Security Ledger</span></li>
+                <li><Link href="/research/methodology" className="hover:text-indigo-600 transition-all cursor-pointer">Methodology Spec</Link></li>
+                <li><Link href="/research/documentation" className="hover:text-indigo-600 transition-all cursor-pointer">Academic Protocol</Link></li>
+                <li><Link href="/privacy" className="hover:text-indigo-600 transition-all cursor-pointer">Security Ledger</Link></li>
               </ul>
             </div>
           </div>
           <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-400 text-[10px] font-black uppercase tracking-widest opacity-60">
             <p>© 2026 AlzDetect Protocol — AI-Assisted Medical Diagnostic Tool</p>
             <div className="flex gap-8">
-              <span>Privacy Policy</span>
-              <span>Terms of Research</span>
-              <span>Ethics Ledger</span>
+              <Link href="/privacy">Privacy Policy</Link>
+              <Link href="/terms">Terms of Research</Link>
+              <Link href="/ethics">Ethics Ledger</Link>
             </div>
           </div>
         </footer>
