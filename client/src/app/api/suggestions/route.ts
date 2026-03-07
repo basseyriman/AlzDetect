@@ -21,20 +21,20 @@ export async function POST(request: Request) {
 
     console.log('Making request with:', { prediction, confidence });
 
-    const prompt = `As a neuroradiology expert, interpret the attention map visualization for an MRI scan that was classified as ${prediction} with ${(confidence * 100).toFixed(1)}% confidence.
+    const prompt = `As a Senior Neuroradiology Expert, provide a definitive interpretation of the attention map visualization for a brain MRI scan classified as ${prediction} with ${(confidence * 100).toFixed(1)}% confidence.
 
 The attention map uses a "jet" colormap where:
-- Blue/Dark Blue indicates areas of low attention
-- Cyan/Yellow indicates areas of medium attention
-- Orange/Red indicates areas of high attention
+- Blue/Dark Blue indicates areas of baseline/low focus
+- Cyan/Yellow indicates areas of moderate physiological significance
+- Orange/Red indicates areas of peak diagnostic focus
 
-Based on this classification and typical patterns in brain MRI attention maps:
-1. What regions of the brain is the model likely focusing on?
-2. Why are these regions significant for this classification?
-3. What are the key anatomical features being highlighted?
-4. How does this align with known patterns in ${prediction} cases?
+Technical Requirements for your Analysis:
+1. Identify the specific anatomical regions of the brain (e.g., hippocampus, cortical thickness, ventricular volume) that the model is actively prioritizing.
+2. Explain the diagnostic clinical significance of why the model is focusing on these specific areas for a ${prediction} classification.
+3. Describe the key morphological or signal intensity features being highlighted by the peak attention weights (Red/Orange zones).
+4. Correlate these findings directly with established neuropathological patterns for ${prediction} cases.
 
-Please provide a concise, technical interpretation focusing on the attention map's significance.`;
+Avoid tentative language like "likely" or "might". Provide a professional, assertive, and technically rigorous interpretation of the model's focus.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

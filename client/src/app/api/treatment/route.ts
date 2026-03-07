@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
   try {
     const { prediction, confidence } = await request.json();
-    
+
     if (!prediction || confidence === undefined) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -21,26 +21,24 @@ export async function POST(request: Request) {
 
     console.log('Making treatment request with:', { prediction, confidence });
 
-    const prompt = `As a medical expert, provide detailed treatment and management suggestions for a patient diagnosed with ${prediction} (confidence: ${(confidence * 100).toFixed(1)}%).
+    const prompt = `As a Senior Clinical Neurologist, provide a definitive set of stage-appropriate clinical management and therapeutic lifestyle recommendations for a patient with a confirmed ${prediction} classification (Confidence Score: ${(confidence * 100).toFixed(1)}%).
 
-Please provide specific recommendations in these areas:
+Professional Guidelines for your Recommendations:
+1. Clinical Management:
+- Specify the standard-of-care medical interventions (e.g., cholinesterase inhibitors for early stages, NMDA antagonists for advanced stages) that are appropriate for the ${prediction} stage.
+- List specific cognitive therapies or neuropsychological interventions tailored to this level of impairment.
+- State the essential clinical monitoring requirements (lab work, imaging frequency, cognitive testing).
 
-1. Key Management Strategies:
-- What are the essential medical interventions?
-- What type of cognitive therapies would be most beneficial?
-- What daily routine adjustments are recommended?
+2. Therapeutic Lifestyle & Caregiving:
+- Define the optimal daily structure and cognitive stimulation activities that correlate with the ${prediction} capability level.
+- Provide definitive dietary and nutritional strategies for neuro-preservation.
+- Outline specific safety and environmental modifications required at this clinical stage.
 
-2. Lifestyle Recommendations:
-- What physical activities are most appropriate?
-- What dietary considerations should be taken into account?
-- What cognitive exercises or activities would be most beneficial?
+3. Prognostic Monitoring:
+- Identify the primary red-flag symptoms that indicate immediate clinical escalation.
+- State the recommended frequency of neurology follow-up visits.
 
-3. Monitoring Considerations:
-- What symptoms or changes should be monitored?
-- What is the recommended frequency for medical check-ups?
-- What potential complications should be watched for?
-
-Please provide evidence-based, practical recommendations that can be implemented by healthcare providers and caregivers.`;
+Note: Provide your recommendations as categorical, definitive expert guidance suitable for inclusion in a clinical report. Do not use vague or tentative language. Focus exclusively on the identified ${prediction} stage.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -68,7 +66,7 @@ Please provide evidence-based, practical recommendations that can be implemented
 
     const data = await response.json();
     console.log('OpenAI response received');
-    
+
     return NextResponse.json({
       suggestions: data.choices[0].message.content
     });
