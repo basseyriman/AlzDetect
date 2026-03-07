@@ -105,36 +105,42 @@ def generate_attention_map(image_array):
         return None
 
 
-def plot_attention_overlay(image_array, attention_map, predicted_class=None):
+def plot_attention_overlay(image_array, attention_map):
     try:
-        # Create a single focused figure
-        plt.figure(figsize=(8, 8))
-        
         if attention_map is None:
+            # If attention map generation failed, return only the original image
+            plt.figure(figsize=(5, 5))
             plt.imshow(image_array)
-            plt.title("Original Image (Attention Map Unavailable)", fontsize=14, pad=15)
+            plt.title("Original Image (Attention Map Unavailable)")
+            plt.axis("off")
         else:
-            # Display the original scan
+            plt.figure(figsize=(10, 5))
+
+            # Plot original image
+            plt.subplot(1, 2, 1)
             plt.imshow(image_array)
-            
-            # Overlay the attention heatmap using JET colormap with 50% transparency
-            plt.imshow(attention_map.squeeze(), cmap="jet", alpha=0.5)
-            
-            # Add a clear label at the top
-            if predicted_class:
-                plt.title(f"Focus Area: {predicted_class}", fontsize=16, fontweight='bold', pad=20)
-            else:
-                plt.title("Model Attention Map Overlay", fontsize=16, fontweight='bold', pad=20)
+            plt.title("Original Image")
+            plt.axis("off")
 
-        plt.axis("off")
+            # Normalize attention map for visualization if it's not already
+            att_min = attention_map.min()
+            att_max = attention_map.max()
+            norm_attention = (attention_map - att_min) / (att_max - att_min + 1e-8)
 
-        # Save plot to bytes buffer with tight layout to remove whitespace
+            # Plot image with attention overlay
+            plt.subplot(1, 2, 2)
+            plt.imshow(image_array)
+            plt.imshow(norm_attention.squeeze(), cmap="jet", alpha=0.5)
+            plt.title("Attention Map Overlay")
+            plt.axis("off")
+
+        # Save plot to bytes buffer
         buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(buf, format='png', bbox_inches='tight')
         plt.close()
         buf.seek(0)
 
-        # Convert to base64 for frontend transmission
+        # Convert to base64
         img_str = base64.b64encode(buf.getvalue()).decode()
         return img_str
     except Exception as e:
@@ -205,6 +211,10 @@ async def predict_model(file: UploadFile):
             attention_map = generate_attention_map(img_array)
             print(f"Attention map present: {attention_map is not None}")
 
+            # Create visualization
+            visualization = plot_attention_overlay(original_img_array, attention_map)
+            print(f"Visualization generated: {visualization is not None}")
+
             # Get probabilities and make prediction
             class_probabilities = prediction[0].tolist()
             prediction_results = {
@@ -215,10 +225,8 @@ async def predict_model(file: UploadFile):
             predicted_class = CLASS_NAMES[np.argmax(prediction[0])]
             confidence = float(np.max(prediction[0]))
 
-            # Create visualization with the predicted class label
-            print("Creating visualization...")
-            visualization = plot_attention_overlay(original_img_array, attention_map, predicted_class)
-            print(f"Visualization generated: {visualization is not None}")
+            print(type(visualization))
+            print(visualization)
 
             return {
                 "file_name": file.filename,
