@@ -122,15 +122,26 @@ def plot_attention_overlay(image_array, attention_map):
             plt.title("Original Image")
             plt.axis("off")
 
-            # Normalize attention map for visualization if it's not already
+            # Normalize attention map for visualization
             att_min = attention_map.min()
             att_max = attention_map.max()
             norm_attention = (attention_map - att_min) / (att_max - att_min + 1e-8)
+            norm_attention = norm_attention.squeeze()
 
-            # Plot image with attention overlay
+            # Create custom colormap: Transparent (low) -> Vibrant (high)
+            # This prevents the "darkening" effect on the MRI scan
+            jet = plt.cm.get_cmap('jet')
+            my_cmap = jet(np.arange(jet.N))
+            # Set alpha: 0 at the low end (blue/cold) to 0.7 at the high end (red/hot)
+            # We use a power function to make low-attention areas very transparent
+            my_cmap[:, -1] = np.power(np.linspace(0, 1, jet.N), 2) * 0.8
+            from matplotlib.colors import ListedColormap
+            my_transparent_cmap = ListedColormap(my_cmap)
+
+            # Plot image with transparent attention overlay
             plt.subplot(1, 2, 2)
             plt.imshow(image_array)
-            plt.imshow(norm_attention.squeeze(), cmap="jet", alpha=0.5)
+            plt.imshow(norm_attention, cmap=my_transparent_cmap)
             plt.title("Attention Map Overlay")
             plt.axis("off")
 
