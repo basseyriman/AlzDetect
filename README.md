@@ -15,19 +15,21 @@ regarding potential anomalies associated with Alzheimer's.
 
 ## 🎯 Features
 
-- **User-Friendly Interface**: Simplified drag-and-drop functionality for uploading MRI scans.
-- **Real-Time Analysis**: Immediate processing and analysis of uploaded images.
-- **Visual Feedback**: Scan previews to ensure correct image selection.
-- **Secure Processing**: Ensures user data privacy during image analysis.
+- **Vision Transformer (ViT) Analysis**: Leverages state-of-the-art ViT-B/32 architecture for high-resolution MRI classification.
+- **Explainable AI (XAI)**: Generates dynamic attention maps to visualize which brain regions influence the model's prediction.
+- **Premium SaaS Aesthetic**: A complete redesign featuring glassmorphism, neural gradients, and smooth animations.
+- **Four-Stage Classification**: Accurate detection of NonDemented, VeryMild, Mild, and ModerateDemented cognitive stages.
+- **Research Portal**: Dedicated sections for methodology, technical documentation, and AI ethics.
 
 ---
 
 ## 🛠️ Technologies Used
 
-- **Frontend**: [Next.js](https://nextjs.org/) for server-side rendering and React-based UI.
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) for responsive and modern design.
-- **Image Processing**: Integration with machine learning models for MRI analysis.
-- **Deployment**: Hosted on [Vercel](https://vercel.com/) for seamless CI/CD and global availability.
+- **AI/ML**: `Vit-Keras`, `TensorFlow`, `OpenAI API` for clinical interpretation.
+- **Frontend**: `Next.js 15`, `React`, `Lucide React` (Premium Icons).
+- **Backend**: `FastAPI`, `Uvicorn` (Production-grade server).
+- **Styling**: `Tailwind CSS` with custom glassmorphism utilities.
+- **Deployment**: [Vercel](https://vercel.com/) for frontend, [Uvicorn] for backend hosting.
 
 ---
 
