@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { CloudUpload, Paperclip, X, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CloudUpload, Paperclip, X, Sparkles, Brain, Activity, ArrowLeft, Download, ShieldCheck, Microscope } from "lucide-react";
+import Link from "next/link";
 import axios from "axios";
 import { Navbar } from "@/components/Navbar";
 import { saveResult } from "@/lib/storage";
@@ -30,6 +31,13 @@ export default function DetectPage() {
   const [displayedTreatment, setDisplayedTreatment] = useState<string>("");
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isLoadingTreatment, setIsLoadingTreatment] = useState(false);
+
+  // Auto-scroll to result when available
+  useEffect(() => {
+    if (result) {
+      window.scrollTo({ top: 400, behavior: 'smooth' });
+    }
+  }, [result]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -81,19 +89,13 @@ export default function DetectPage() {
     setIsLoading(true);
     const formData = new FormData();
     formData.append("file", file);
-    
+
     try {
-    const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_SERVER_HOST}/model/predict`,
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER_HOST}/model/predict`,
         formData
       );
       const analysisResult = response.data;
-      
-      console.log('Full response data:', analysisResult);
-      console.log('Attention map visualization present:', !!analysisResult.attention_map_visualization);
-      if (analysisResult.attention_map_visualization) {
-        console.log('Attention map visualization length:', analysisResult.attention_map_visualization.length);
-      }
       saveResult(analysisResult, file.name);
       setResult(analysisResult);
     } catch (error) {
@@ -129,13 +131,6 @@ export default function DetectPage() {
       simulateTyping(response.data.suggestions, setDisplayedSuggestions);
     } catch (error) {
       console.error('Error getting suggestions:', error);
-      if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.error || 
-                           `Request failed: ${error.response?.status} ${error.response?.statusText}`;
-        alert(errorMessage);
-      } else {
-        alert('Failed to get suggestions: An unexpected error occurred');
-      }
     } finally {
       setIsLoadingSuggestions(false);
     }
@@ -154,44 +149,54 @@ export default function DetectPage() {
       simulateTyping(response.data.suggestions, setDisplayedTreatment);
     } catch (error) {
       console.error('Error getting treatment suggestions:', error);
-      if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.error || 
-                           `Request failed: ${error.response?.status} ${error.response?.statusText}`;
-        alert(errorMessage);
-      } else {
-        alert('Failed to get treatment suggestions: An unexpected error occurred');
-      }
     } finally {
       setIsLoadingTreatment(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div className="min-h-screen bg-[#F8FAFC] neural-gradient pb-20">
       <Navbar />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">
-            Brain MRI Analysis
-        </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Upload your MRI scan and analyze potential anomalies
-          </p>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 lg:pt-20">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+          <div className="space-y-4">
+            <Link href="/" className="inline-flex items-center gap-2 text-indigo-600 font-bold text-sm hover:gap-3 transition-all">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Link>
+            <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none">
+              Neural <span className="text-gradient">Diagnostic</span> Analysis
+            </h1>
+            <p className="text-slate-500 font-light max-w-xl">
+              Deploying Vision Transformer Bi-32 protocols to classify neurodegenerative stages from raw MRI voxel data.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 px-6 py-3 bg-white/60 glass-morphism rounded-2xl border border-white text-[10px] font-black uppercase tracking-widest text-indigo-600 shadow-sm animate-fade-in">
+            <ShieldCheck className="w-4 h-4 opacity-70" />
+            HIPAA-AWARE RESEARCH SECURE
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          {/* Left Column: Upload Form and Results */}
-          <div className="w-full space-y-8">
-            {/* Upload Form */}
-            <div className="bg-white backdrop-blur-sm bg-opacity-90 rounded-2xl shadow-xl border border-gray-100 p-8 transition-all duration-300 hover:shadow-2xl">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 text-center">Upload Scan</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          {/* Left Column: Upload & Classification */}
+          <div className="space-y-10 animate-fade-in">
+            {/* 1. Upload Section */}
+            <div className="glass-card rounded-[3rem] p-8 lg:p-12 space-y-10 border-white/50 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Microscope className="w-24 h-24" />
+              </div>
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-black text-slate-900">Sequence Upload</h2>
+                <p className="text-sm text-slate-400 font-medium lowercase">Supported Formats: DICOM-to-PNG, SVG, JPG, GIF</p>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-8">
-                <div 
-                  className={`relative border-2 border-dashed rounded-xl p-8 transition-all duration-300
-                    ${isDragging ? 'border-indigo-500 bg-indigo-50/50 scale-[0.99]' : 'border-gray-200'}
-                    ${file ? 'bg-gray-50/50' : 'hover:bg-gray-50/50 hover:border-gray-300'}`}
+                <div
+                  className={`relative border-2 border-dashed rounded-[2.5rem] p-12 transition-all duration-500 group/drop
+                    ${isDragging ? 'border-indigo-500 bg-indigo-50/50 scale-95 shadow-2xl' : 'border-slate-200'}
+                    ${file ? 'bg-slate-50/30' : 'hover:bg-slate-50/80 hover:border-indigo-300'}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
@@ -200,39 +205,37 @@ export default function DetectPage() {
                     type="file"
                     onChange={handleFileChange}
                     accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     style={{ display: file ? 'none' : 'block' }}
                   />
-                  
+
                   {!file ? (
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      <div className="p-4 bg-indigo-50 rounded-full">
-                        <CloudUpload className="w-10 h-10 text-indigo-500" />
+                    <div className="flex flex-col items-center justify-center space-y-6">
+                      <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-indigo-600/30 group-hover/drop:scale-110 transition-transform animate-float">
+                        <CloudUpload className="w-10 h-10" />
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-600">
-                          <span className="font-semibold text-indigo-600">Click to upload</span>
-                          {" "}or drag and drop
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Supported formats: SVG, PNG, JPG or GIF
-                        </p>
+                        <p className="text-lg font-bold text-slate-900 leading-none mb-2">Select Scan Volume</p>
+                        <p className="text-sm text-slate-400 font-light group-hover/drop:text-indigo-500 transition-colors">Drag and drop MRI sequence or click to browse</p>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-100">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-indigo-50 rounded-lg">
-                          <Paperclip className="h-5 w-5 text-indigo-500" />
+                    <div className="flex items-center justify-between bg-white/80 backdrop-blur p-6 rounded-3xl shadow-lg ring-1 ring-slate-100 animate-fade-in">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                          <Paperclip className="h-6 w-6 text-indigo-600" />
                         </div>
-                        <span className="text-sm text-gray-600 font-medium truncate">{file.name}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-slate-900 font-black truncate w-40">{file.name}</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">MRI Slice Active</span>
+                        </div>
                       </div>
                       <button
                         type="button"
                         onClick={removeFile}
-                        className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                        className="w-10 h-10 flex items-center justify-center hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition-all"
                       >
-                        <X className="h-4 w-4 text-gray-500" />
+                        <X className="h-5 w-5" />
                       </button>
                     </div>
                   )}
@@ -241,378 +244,220 @@ export default function DetectPage() {
                 <button
                   type="submit"
                   disabled={!file || isLoading}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl font-medium
-                    shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30
-                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg
-                    transition-all duration-300 transform hover:-translate-y-0.5"
+                  className="btn-premium w-full flex items-center justify-center gap-3 text-lg py-6"
                 >
                   {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : "Analyze Scan"}
+                    <>
+                      <Activity className="animate-spin w-5 h-5" />
+                      Neural Sequence Processing...
+                    </>
+                  ) : (
+                    <>
+                      Analyze Brain Scan
+                      <Activity className="w-5 h-5 opacity-50" />
+                    </>
+                  )}
                 </button>
               </form>
             </div>
 
-            {/* Results Card */}
+            {/* 2. Results Section */}
             {result && (
-              <div className="space-y-6">
-                <div className="bg-white backdrop-blur-sm bg-opacity-90 rounded-2xl shadow-xl border border-gray-100 p-8 transition-all duration-300">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-gray-900">Analysis Results</h2>
-                    <div className={`px-4 py-1.5 rounded-full text-sm font-medium
-                      ${result.predicted_class === 'NonDemented' ? 'bg-green-100 text-green-800' :
-                        result.predicted_class === 'VeryMildDemented' ? 'bg-yellow-100 text-yellow-800' :
-                        result.predicted_class === 'MildDemented' ? 'bg-orange-100 text-orange-800' :
-                        'bg-red-100 text-red-800'}`}>
-                      Predicted: {result.predicted_class}
-                      <div className="text-xs font-normal mt-1">
-                        Confidence: {(result.class_probabilities[result.predicted_class] * 100).toFixed(1)}%
-                      </div>
-                    </div>
+              <div className="glass-card rounded-[3rem] p-10 lg:p-12 space-y-10 border-white/50 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h2 className="text-2xl font-black text-slate-900">Analysis Verdict</h2>
+                    <p className="text-xs text-slate-400 font-black tracking-widest uppercase">Class Distribution Probabilities</p>
                   </div>
+                  <div className={`px-6 py-2 rounded-2xl text-xs font-black tracking-widest uppercase border shadow-sm
+                    ${result.predicted_class === 'NonDemented' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                      result.predicted_class === 'VeryMildDemented' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                        result.predicted_class === 'MildDemented' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                          'bg-red-50 text-red-600 border-red-100'}`}>
+                    {result.predicted_class}
+                  </div>
+                </div>
 
-                  {/* First show the predicted class probability */}
-                  <div className="relative">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium text-gray-600">{result.predicted_class}</span>
-                      <span className="text-sm font-bold text-gray-900">
+                <div className="space-y-8">
+                  {/* Primary Result Focus */}
+                  <div className="p-8 bg-slate-900 rounded-[2.5rem] relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative z-10 flex justify-between items-center mb-4">
+                      <span className="text-indigo-300 text-xs font-black tracking-widest uppercase">Primary Prediction</span>
+                      <span className="text-white text-3xl font-black italic">
                         {(result.class_probabilities[result.predicted_class] * 100).toFixed(1)}%
                       </span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
                       <div
-                        className={`h-1.5 rounded-full transition-all duration-500 ${
-                          result.predicted_class === 'NonDemented' ? 'bg-green-500' :
-                          result.predicted_class === 'VeryMildDemented' ? 'bg-yellow-500' :
-                          result.predicted_class === 'MildDemented' ? 'bg-orange-500' :
-                          'bg-red-500'
-                        }`}
+                        className="h-full bg-gradient-to-r from-indigo-500 to-indigo-300 transition-all duration-1000"
                         style={{ width: `${result.class_probabilities[result.predicted_class] * 100}%` }}
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="border-t mt-4 pt-4">
-                      <h3 className="text-sm font-medium text-gray-500 mb-4">Probabilities</h3>
-                      <div className="grid grid-cols-1 gap-3">
-                        {Object.entries(result.class_probabilities)
-                          .filter(([className]) => className !== result.predicted_class)
-                          .sort(([, a], [, b]) => b - a)
-                          .map(([className, probability]) => (
-                            <div key={className} className="relative">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm font-medium text-gray-600">{className}</span>
-                                <span className="text-sm font-bold text-gray-900">
-                                  {(probability * 100).toFixed(1)}%
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                <div
-                                  className={`h-1.5 rounded-full transition-all duration-500 ${
-                                    className === 'NonDemented' ? 'bg-green-500' :
-                                    className === 'VeryMildDemented' ? 'bg-yellow-500' :
-                                    className === 'MildDemented' ? 'bg-orange-500' :
-                                    'bg-red-500'
-                                  }`}
-                                  style={{ width: `${probability * 100}%` }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Treatment & Management Suggestions */}
-                <div className="bg-white backdrop-blur-sm bg-opacity-90 rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900">Treatment & Management</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        result.predicted_class === 'NonDemented' ? 'bg-green-100 text-green-800' :
-                        result.predicted_class === 'VeryMildDemented' ? 'bg-yellow-100 text-yellow-800' :
-                        result.predicted_class === 'MildDemented' ? 'bg-orange-100 text-orange-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {result.predicted_class}
+                  {/* Secondary results */}
+                  <div className="grid gap-6">
+                    {Object.entries(result.class_probabilities)
+                      .filter(([className]) => className !== result.predicted_class)
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([className, probability]) => (
+                        <div key={className} className="space-y-2 group/bar">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-slate-500 group-hover/bar:text-slate-900 transition-colors">{className}</span>
+                            <span className="text-xs font-black text-slate-900">
+                              {(probability * 100).toFixed(1)}%
                             </span>
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    {!treatmentSuggestions ? (
-                      <div className="flex flex-col items-center justify-center py-8">
-                        <button
-                          onClick={getTreatmentSuggestions}
-                          disabled={isLoadingTreatment || !suggestions}
-                          className="inline-flex items-center px-5 py-2.5 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 
-                            disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 group"
-                        >
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          {isLoadingTreatment ? "Generating..." : 
-                           !suggestions ? "Analyze Attention Map First" : 
-                           "Get Treatment Suggestions"}
-                        </button>
-                        {!suggestions && (
-                          <p className="text-xs text-gray-500 mt-3 text-center">
-                            Please analyze the attention map before getting treatment suggestions
-                          </p>
-                        )}
-                      </div>
-                    ) : isLoadingTreatment ? (
-                      <div className="space-y-6">
-                        <div className="prose prose-emerald prose-sm max-w-none">
-                          <div className="relative pl-4 text-gray-600 leading-relaxed min-h-[100px] flex items-center">
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-500/50 to-emerald-500/20 rounded-full"></div>
-                            <div className="w-full">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce delay-100"></div>
-                                <div className="w-2 h-2 bg-emerald-300 rounded-full animate-bounce delay-200"></div>
-                                <span className="text-sm text-emerald-600 animate-pulse">AI is writing treatment recommendations...</span>
-                              </div>
-                            </div>
+                          </div>
+                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-slate-400 group-hover/bar:bg-indigo-400 transition-all duration-500"
+                              style={{ width: `${probability * 100}%` }}
+                            />
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        <div className="prose prose-emerald prose-sm max-w-none">
-                          <div className="relative pl-4 text-gray-600 leading-relaxed">
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-500/50 to-emerald-500/20 rounded-full"></div>
-                            <p className="whitespace-pre-line text-sm">{displayedTreatment}</p>
-                            {displayedTreatment !== treatmentSuggestions && (
-                              <span className="inline-block w-1 h-4 bg-emerald-500 ml-1 animate-blink"></span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="mt-6 pt-6 border-t border-gray-100">
-                          <p className="text-xs text-gray-500 text-center">
-                            These are general recommendations. Please consult with healthcare providers for personalized advice.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-            </div>
-            )}
-      </div>
-
-          {/* Right Column: Scan Preview and Attention Map */}
-          <div className="w-full space-y-8">
-            {/* Original Scan - Hidden when attention map is shown */}
-            {!result?.attention_map_visualization && (
-              <div className="bg-white backdrop-blur-sm bg-opacity-90 rounded-2xl shadow-xl border border-gray-100 p-8 transition-all duration-300 hover:shadow-2xl">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6 text-center">Scan Preview</h2>
-                <div className="w-full aspect-square relative rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
-            {imageUrl ? (
-                    <div className="absolute inset-0 flex items-center justify-center">
-              <Image
-                src={imageUrl}
-                        alt="Scan preview"
-                        fill
-                        className="object-contain"
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                      />
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 space-y-4">
-                      <svg className="w-20 h-20 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-lg font-medium">Upload scan to preview</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Attention Map Section */}
-            {result?.attention_map_visualization && (
-              <div className="space-y-6">
-                {/* Attention Map Visualization */}
-                <div className="relative">
-                  <div className="bg-white backdrop-blur-sm bg-opacity-90 rounded-2xl shadow-xl border border-gray-100 p-8 transition-all duration-300 hover:shadow-2xl">
-                    <h2 className="text-xl font-semibold text-gray-900 text-center mb-8">Model Attention Map</h2>
-
-                    <div className="w-full">
-                      <Image
-                        src={`data:image/png;base64,${result.attention_map_visualization}`}
-                        alt="Model attention map"
-                        width={400}
-                        height={200}
-                        className="w-full rounded-lg shadow-md"
-                        unoptimized
-                      />
-                      <div className="mt-4 text-center">
-                        <p className="text-sm text-gray-600">
-                          The colored regions show areas the model focused on for its prediction.
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Brighter areas indicate stronger attention weights
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Vertical Legend - Positioned Absolutely */}
-                  <div className="absolute -right-20 top-1/2 -translate-y-1/2 flex flex-col justify-center space-y-2 pl-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded shadow-sm" style={{ background: 'linear-gradient(to right, #ff8c00, #ff0000)' }} />
-                      <span className="text-xs text-gray-600 whitespace-nowrap">High</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded shadow-sm" style={{ background: 'linear-gradient(to right, #00ffff, #ffff00)' }} />
-                      <span className="text-xs text-gray-600 whitespace-nowrap">Medium</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded shadow-sm" style={{ background: 'linear-gradient(to right, #000080, #0000ff)' }} />
-                      <span className="text-xs text-gray-600 whitespace-nowrap">Low</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Interpretation Section */}
-                <div className="bg-white backdrop-blur-sm bg-opacity-90 rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                  {/* Header with Title */}
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-900 text-center">Attention Map Interpretation</h3>
-                  </div>
-
-                  {/* Content Section */}
-                  <div className="p-6">
-                    <div className="flex justify-center">
-                      <button
-                        onClick={getAISuggestions}
-                        disabled={isLoadingSuggestions}
-                        className="inline-flex items-center px-5 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 
-                          disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        {isLoadingSuggestions ? "Analyzing..." : "Analyze Attention Map"}
-                      </button>
-                    </div>
-
-                    {/* Analysis Results */}
-                    {isLoadingSuggestions ? (
-                      <div className="mt-6">
-                        <div className="flex items-center justify-center mb-4">
-                          <div className="h-px bg-gradient-to-r from-transparent via-indigo-200 to-transparent w-full"></div>
-                          <div className="flex items-center space-x-2 px-3">
-                            <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
-                            <h4 className="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-500 bg-clip-text text-transparent whitespace-nowrap">
-                              Analyzing...
-                            </h4>
-                          </div>
-                          <div className="h-px bg-gradient-to-r from-transparent via-indigo-200 to-transparent w-full"></div>
-                        </div>
-                        <div className="relative">
-                          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-indigo-50 rounded-lg transform rotate-0.5 opacity-70"></div>
-                          <div className="relative bg-white rounded-lg p-5 shadow-md border border-indigo-100">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
-                              <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-100"></div>
-                              <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce delay-200"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : suggestions && (
-                      <div className="mt-6">
-                        <div className="flex items-center justify-center mb-4">
-                          <div className="h-px bg-gradient-to-r from-transparent via-indigo-200 to-transparent w-full"></div>
-                          <div className="flex items-center space-x-2 px-3">
-                            <Sparkles className="w-4 h-4 text-indigo-500" />
-                            <h4 className="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-500 bg-clip-text text-transparent whitespace-nowrap">
-                              Expert Analysis
-                            </h4>
-                          </div>
-                          <div className="h-px bg-gradient-to-r from-transparent via-indigo-200 to-transparent w-full"></div>
-                        </div>
-                        <div className="relative">
-                          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-indigo-50 rounded-lg transform rotate-0.5 opacity-70"></div>
-                          <div className="relative bg-white rounded-lg p-5 shadow-md border border-indigo-100">
-                            <div className="prose prose-indigo prose-sm max-w-none">
-                              <div className="relative pl-4 text-gray-600 leading-relaxed">
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500/20 via-indigo-500/50 to-indigo-500/20 rounded-full"></div>
-                                <p className="whitespace-pre-line text-sm">{displayedSuggestions}</p>
-                                {displayedSuggestions !== suggestions && (
-                                  <span className="inline-block w-1 h-4 bg-indigo-500 ml-1 animate-blink"></span>
-                                )}
-                              </div>
-                            </div>
-                            {displayedSuggestions === suggestions && (
-                              <div className="flex justify-end mt-4 pt-4 border-t border-gray-100">
-                                <button
-                                  onClick={() => {
-                                    const content = `Attention Map Analysis\n\nPatient Diagnosis: ${result?.predicted_class}\nConfidence: ${(result?.class_probabilities[result?.predicted_class || ''] * 100).toFixed(1)}%\n\nAnalysis:\n${suggestions}`;
-                                    const blob = new Blob([content], { type: 'text/plain' });
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `attention_map_analysis_${new Date().toISOString().split('T')[0]}.txt`;
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                    URL.revokeObjectURL(url);
-                                  }}
-                                  className="inline-flex items-center px-3 py-1.5 text-xs bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors"
-                                >
-                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                  </svg>
-                                  Export Analysis
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Treatment Content */}
-                        {treatmentSuggestions && displayedTreatment === treatmentSuggestions && (
-                          <div className="flex justify-end mt-4 pt-4 border-t border-gray-100">
-                            <button
-                              onClick={() => {
-                                const content = `Treatment & Management Recommendations\n\nPatient Diagnosis: ${result?.predicted_class}\nConfidence: ${(result?.class_probabilities[result?.predicted_class || ''] * 100).toFixed(1)}%\n\nRecommendations:\n${treatmentSuggestions}`;
-                                const blob = new Blob([content], { type: 'text/plain' });
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `treatment_recommendations_${new Date().toISOString().split('T')[0]}.txt`;
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
-                                URL.revokeObjectURL(url);
-                              }}
-                              className="inline-flex items-center px-3 py-1.5 text-xs bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100 transition-colors"
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                              Export Recommendations
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      ))}
                   </div>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Right Column: Visualization & AI Insights */}
+          <div className="space-y-10 animate-fade-in" style={{ animationDelay: '200ms' }}>
+            {/* 3. Scan Preview / Attention Map */}
+            <div className="glass-card rounded-[3rem] p-8 lg:p-12 border-white/50 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-black text-slate-900">Visual Core</h2>
+                <div className="flex gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Link</span>
+                </div>
+              </div>
+
+              <div className="w-full aspect-square relative rounded-[2.5rem] overflow-hidden bg-slate-900 border-8 border-white shadow-3xl">
+                {result?.attention_map_visualization ? (
+                  <>
+                    <Image
+                      src={`data:image/png;base64,${result.attention_map_visualization}`}
+                      alt="Attention map"
+                      fill
+                      className="object-contain animate-fade-in"
+                      unoptimized
+                    />
+                    <div className="absolute inset-x-0 bottom-0 p-8 flex justify-center pointer-events-none">
+                      <div className="px-6 py-2 bg-slate-900/90 backdrop-blur rounded-2xl border border-white/10 flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded bg-red-500"></div>
+                          <span className="text-[10px] font-black text-white/70 uppercase">High Focus</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded bg-blue-500"></div>
+                          <span className="text-[10px] font-black text-white/70 uppercase">Baseline</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : imageUrl ? (
+                  <Image src={imageUrl} alt="Scan preview" fill className="object-contain" />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700 space-y-4">
+                    <Brain className="w-24 h-24 opacity-10 animate-pulse-slow" />
+                    <p className="text-xs font-black uppercase tracking-widest opacity-30">Scan Volume Empty</p>
+                  </div>
+                )}
+              </div>
+
+              {result?.attention_map_visualization && (
+                <div className="mt-8 text-center space-y-4">
+                  <p className="text-sm text-slate-500 font-light italic">
+                    "The neural attention rollout highlights voxel dependencies identified by the ViT architecture."
+                  </p>
+                  <div className="flex justify-center">
+                    <button
+                      onClick={getAISuggestions}
+                      disabled={isLoadingSuggestions}
+                      className="btn-premium px-8 py-4 text-sm"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {isLoadingSuggestions ? "De-patching Weights..." : "Extract Expert Interpretation"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Expert Insight Bubble */}
+            {suggestions && (
+              <div className="glass-morphism rounded-[3rem] border-white p-10 lg:p-12 space-y-8 animate-fade-in shadow-xl bg-indigo-900 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-20 transform -rotate-12">
+                  <Sparkles className="w-20 h-20" />
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-900 shadow-xl">
+                    <Microscope className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black italic">Expert Interpretation</h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300">ViT-B/32 Clinical Analysis</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <p className="text-indigo-100 font-light leading-relaxed whitespace-pre-line text-sm">
+                    {displayedSuggestions}
+                    {displayedSuggestions !== suggestions && (
+                      <span className="inline-block w-1.5 h-4 bg-white ml-2 animate-blink"></span>
+                    )}
+                  </p>
+
+                  {displayedSuggestions === suggestions && (
+                    <div className="flex flex-col sm:flex-row gap-4 pt-8">
+                      {!treatmentSuggestions ? (
+                        <button
+                          onClick={getTreatmentSuggestions}
+                          disabled={isLoadingTreatment}
+                          className="flex-1 px-8 py-4 bg-indigo-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-400 transition-all border border-indigo-400/50"
+                        >
+                          {isLoadingTreatment ? (
+                            <Activity className="animate-spin w-4 h-4" />
+                          ) : (
+                            <>
+                              <Activity className="w-4 h-4" />
+                              Generate Protocol Suggestion
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <div className="flex-1 bg-white/10 rounded-2xl p-6 border border-white/10 space-y-4 animate-fade-in">
+                          <h4 className="font-black text-xs uppercase tracking-widest text-indigo-300">Management & Protocol</h4>
+                          <p className="text-indigo-50 text-xs font-light leading-relaxed whitespace-pre-line">
+                            {displayedTreatment}
+                          </p>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => {
+                          const content = `AlzDetect Protocol Report\n\nDiagnosis: ${result?.predicted_class}\n\nInterpretation:\n${suggestions}\n\nManagement:\n${treatmentSuggestions}`;
+                          const blob = new Blob([content], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `alzdetect_report_${new Date().getTime()}.txt`;
+                          a.click();
+                        }}
+                        className="bg-white/10 text-white w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/20 border border-white/10 transition-all"
+                      >
+                        <Download className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
