@@ -7,7 +7,7 @@ from rich.pretty import pprint
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-from vit_keras import vit
+from vit_keras import vit, visualize
 import matplotlib.pyplot as plt
 
 model_route = APIRouter(prefix="/model", tags=["model"])
@@ -86,43 +86,17 @@ def load_model_if_needed():
 def generate_attention_map(image_array):
     global MODEL
     try:
-        # Extract ViT sub-model
+        # image_array is (1, 224, 224, 3) and normalized
+        # Use vit_keras built-in visualization utility
+        # It expects the sub-model (vit-b32) and the image
         vit_model = MODEL.get_layer("vit-b32")
-
-        # Get the last encoder block
-        last_encoder = vit_model.get_layer("Transformer/encoderblock_11")
-        print("Found last encoder block")
-
-        # Create intermediate model for attention extraction - directly access output[1] for attention weights
-        intermediate_model = tf.keras.Model(inputs=vit_model.input, outputs=last_encoder.output[1])
-
-        # Get attention output
-        attention_output = intermediate_model(image_array)
-        print(f"Attention output shape: {attention_output.shape}")
-
-        # Average attention weights across heads
-        attention_avg = tf.reduce_mean(attention_output, axis=1).numpy()[0]
-        print(f"Averaged attention shape: {attention_avg.shape}")
-
-        # Get class token attention (skip first token)
-        class_token_attention = attention_avg[0, 1:]
-        print(f"Class token attention shape: {class_token_attention.shape}")
-
-        # Calculate grid size (should be 7x7 based on the warning message)
-        grid_size = int(np.sqrt(len(class_token_attention)))
-        print(f"Grid size: {grid_size}")
-
-        # Reshape to grid
-        attention_grid = class_token_attention.reshape(grid_size, grid_size)
-
-        # Normalize attention map
-        attention_normalized = (attention_grid - np.min(attention_grid)) / (
-                np.max(attention_grid) - np.min(attention_grid) + 1e-8)
-
-        # Resize attention map to match image size
-        attention_resized = tf.image.resize(attention_normalized[..., np.newaxis], (224, 224)).numpy()
-
-        return attention_resized
+        
+        # The visualize utility expects an image in [0, 1] range
+        # and returns a heatmap of size (image_size, image_size)
+        attention_map = visualize.attention_map(model=vit_model, image=image_array[0])
+        
+        print(f"Attention map generated with shape: {attention_map.shape}")
+        return attention_map
 
     except Exception as e:
         print(f"Error generating attention map: {str(e)}")
