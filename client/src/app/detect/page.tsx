@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { CloudUpload, Paperclip, X, Sparkles, Brain, Activity, ArrowLeft, Download, ShieldCheck, Microscope } from "lucide-react";
+import { CloudUpload, Paperclip, X, Sparkles, Brain, Activity, ArrowLeft, Download, ShieldCheck, Microscope, ClipboardCheck, HeartPulse } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
 import { Navbar } from "@/components/Navbar";
@@ -411,47 +411,78 @@ export default function DetectPage() {
                     )}
                   </p>
 
-                  {displayedSuggestions === suggestions && (
-                    <div className="flex flex-col sm:flex-row gap-4 pt-8">
-                      {!treatmentSuggestions ? (
-                        <button
-                          onClick={getTreatmentSuggestions}
-                          disabled={isLoadingTreatment}
-                          className="flex-1 px-8 py-4 bg-indigo-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-400 transition-all border border-indigo-400/50"
-                        >
-                          {isLoadingTreatment ? (
-                            <Activity className="animate-spin w-4 h-4" />
-                          ) : (
-                            <>
-                              <Activity className="w-4 h-4" />
-                              Generate Protocol Suggestion
-                            </>
-                          )}
-                        </button>
-                      ) : (
-                        <div className="flex-1 bg-white/10 rounded-2xl p-6 border border-white/10 space-y-4 animate-fade-in">
-                          <h4 className="font-black text-xs uppercase tracking-widest text-indigo-300">Management & Protocol</h4>
-                          <p className="text-indigo-50 text-xs font-light leading-relaxed whitespace-pre-line">
-                            {displayedTreatment}
-                          </p>
-                        </div>
-                      )}
+                  {displayedSuggestions === suggestions && !treatmentSuggestions && (
+                    <div className="pt-6">
                       <button
-                        onClick={() => {
-                          const content = `AlzDetect Protocol Report\n\nDiagnosis: ${result?.predicted_class}\n\nInterpretation:\n${suggestions}\n\nManagement:\n${treatmentSuggestions}`;
-                          const blob = new Blob([content], { type: 'text/plain' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `alzdetect_report_${new Date().getTime()}.txt`;
-                          a.click();
-                        }}
-                        className="bg-white/10 text-white w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-white/20 border border-white/10 transition-all"
+                        onClick={getTreatmentSuggestions}
+                        disabled={isLoadingTreatment}
+                        className="w-full px-8 py-5 bg-white/20 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-white/30 transition-all border border-white/10 shadow-xl"
                       >
-                        <Download className="w-5 h-5" />
+                        {isLoadingTreatment ? (
+                          <Activity className="animate-spin w-5 h-5" />
+                        ) : (
+                          <>
+                            <HeartPulse className="w-5 h-5" />
+                            Generate Clinical Protocol
+                          </>
+                        )}
                       </button>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* 5. Expert Protocol Card (Elevated) */}
+            {treatmentSuggestions && (
+              <div className="glass-card rounded-[3rem] p-10 lg:p-12 space-y-8 animate-fade-in border-indigo-200/50 bg-gradient-to-br from-indigo-50/50 to-white relative overflow-hidden shadow-2xl">
+                <div className="absolute top-0 right-0 p-8 opacity-5">
+                  <ClipboardCheck className="w-32 h-32" />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-200">
+                      <HeartPulse className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900">Expert Management Protocol</h3>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Advanced Therapeutic Strategy</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const content = `AlzDetect Protocol Report\n\nDiagnosis: ${result?.predicted_class}\n\nInterpretation:\n${suggestions}\n\nManagement Protocol:\n${treatmentSuggestions}`;
+                      const blob = new Blob([content], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `alzdetect_clinical_protocol_${new Date().getTime()}.txt`;
+                      a.click();
+                    }}
+                    className="w-12 h-12 flex items-center justify-center bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-2xl transition-all border border-slate-100"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-violet-500 rounded-full opacity-20"></div>
+                  <div className="pl-8 space-y-6">
+                    <p className="text-slate-600 font-light leading-relaxed whitespace-pre-line text-sm">
+                      {displayedTreatment}
+                      {displayedTreatment !== treatmentSuggestions && (
+                        <span className="inline-block w-1.5 h-4 bg-indigo-600 ml-2 animate-blink"></span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-slate-900 rounded-3xl flex items-center gap-4 text-white/70">
+                  <ShieldCheck className="w-6 h-6 text-indigo-400" />
+                  <p className="text-[10px] font-bold leading-tight uppercase tracking-wider">
+                    This protocol is AI-generated for research validation and should be reviewed by a licensed clinical neurologist.
+                  </p>
                 </div>
               </div>
             )}
