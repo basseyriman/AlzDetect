@@ -59,33 +59,11 @@ def load_model_if_needed():
                 pretrained_top=False
             )
             
-            # Now, we "re-wrap" it to expose attention
-            # We'll create a new functional model that mirrors base_vit 
-            # but outputs BOTH the final tokens AND the attention weights from layers.
-            inputs = tf.keras.layers.Input(shape=(224, 224, 3))
+            # We "re-wrap" the model to expose internal components if needed.
+            # To make it work on Vercel without a library patch, we prepare 
+            # for manual layer-by-layer traversal during inference.
             
-            # This is a bit complex because vit_keras models are deeply nested.
-            # Simplest way: use the fact that our patch to vit.py (if it were there) would work.
-            # Since we want it portable, we just use the base_vit but we'll 
-            # "reach in" during generate_attention_map using a temporary model.
-            
-            # To make it work on Vercel without a library patch, we MONKEY-PATCH 
-            # the TransformerBlock's __call__ or call before building the model!
-            
-            original_block_call = layers.TransformerBlock.call
-            def attention_preserving_call(self, inputs, training=False):
-                # We call the original which returns (output, weights)
-                res = original_block_call(self, inputs, training=training)
-                # Keras Functional API uses the first element of the return tuple 
-                # if we don't unpack both. To force it to see both, we MUST 
-                # ensure the caller unpacks both.
-                return res
-
-            # We can't easily change the library's vit.py call site.
-            # SO: we use the "last resort" - we'll just manually compute rollout 
-            # if the library visualization fails.
-            
-            # Create our main model architecture
+            # Create our main model architecture using the base ViT
             x = base_vit(inputs, training=False)
             x = tf.keras.layers.Dense(256, activation='relu',
                                       kernel_regularizer=tf.keras.regularizers.L2(0.01))(x)
@@ -112,123 +90,60 @@ def generate_attention_map(image_array):
         # image_array is (1, 224, 224, 3) and normalized [0, 1]
         vit_model = MODEL.get_layer("vit-b32")
         
-        # FINAL PORTABLE SOLUTION: 
-        # Since we can't easily get attention weights from the loaded graph 
-        # (because they were discarded during build_model in vit.py), 
-        # we will use a "Guided Backprop" or simple Gradient-based focus if needed.
-        # BUT, there's a better way: vit-keras allows us to just re-predict 
-        # using their visualize module if we have the model.
+        # PORTABLE ATTENTION ROLLOUT IMPLEMENTATION: 
+        # Since standard library utilities often discard attention weights 
+        # during model building, we perform a manual forward pass through the 
+        # sub-layers to capture exact focus data.
+        print("Extracting attention map via manual layer-by-layer rollout...")
         
-        # The issue was that visualize.attention_map was returning zeros.
-        # This is often due to the normalize step in their rollout.
-        
-        # Let's try a custom, robust rollout extraction:
-        print("Extracting attention map via robust rollout...")
-        
-        # If the user saw it before, it was likely using this layer:
         try:
-            # Try to find any attention weights in the model
-            # Re-running the sub-model with a patch to capture weights
-            attn_weights = []
-            
-            def patch_callback(self, inputs, outputs):
-                # outputs is (output, weights)
-                if isinstance(outputs, (list, tuple)) and len(outputs) > 1:
-                    attn_weights.append(outputs[1].numpy())
-                return outputs[0]
-
-            # We'll use a temporary "Attention Extractor" that manually computes 
-            # the attention for ONE sample.
-            
-            # Simplified version: Get the last block's attention by looking 
-            # at its internal layers.
-            last_block = vit_model.get_layer("Transformer_encoderblock_11")
-            
-            # Create a model that targets the internal attention layer
-            # In layers.py, it's called "MultiHeadDotProductAttention_1"
-            # Since TransformerBlock is a Layer, its internal layers are not reachable 
-            # via vit_model.get_layer(). But they are attributes!
-            
-            if hasattr(last_block, 'att'):
-                # We can't create a Model targeting an internal attribute's output 
-                # if it wasn't part of the functional graph.
-                pass
-
-            # OK, let's use the most reliable method: 
-            # We will use the 'visualize.attention_map' but we will FIX the 
-            # result if it's too dark.
-            from vit_keras import visualize
-            
-            # The zeros we saw earlier were likely because 'weights' in visualize.py 
-            # was empty because l.output[1] was invalid.
-            
-            # Since I've already patched the LOCAL vit.py, it will work here.
-            # To make it work on VERCEL, I'll add a runtime patch RIGHT HERE.
-            
-            import vit_keras.vit as vkv
-            import vit_keras.layers as vkl
-            
-            # Runtime patch for vit_keras.vit.build_model logic
-            # This ensures that ANY NEW ViT model built will have attention outputs
-            source = """
-    for n in range(num_layers):
-        y, att = layers.TransformerBlock(
-            num_heads=num_heads,
-            mlp_dim=mlp_dim,
-            dropout=dropout,
-            name=f"Transformer_encoderblock_{n}",
-        )(y)
-"""
-            # This is hard to do via replacement.
-            # Let's just do a manual rollout on the last block's activation if we can.
-            
-            # THE ABSOLUTE BEST WAY:
-            # Re-implement the vit-keras visualize logic but manually calling the layers.
-            
+            # Prepare image for ViT specific preprocessing
             img = (image_array[0] * 255).astype('uint8')
             img_resized = cv2.resize(img, (224, 224))
             X = vit.preprocess_inputs(img_resized)[np.newaxis, :]
             
-            # Manually run the sub-model and capture weights
+            # Step-by-step Execution through the sub-model:
+            # 1. Input Transformation & Positional Embedding
             curr_x = tf.cast(X, tf.float32)
-            # Embedding
             curr_x = vit_model.get_layer("embedding")(curr_x)
-            # Reshape
             curr_x = tf.reshape(curr_x, (-1, curr_x.shape[1] * curr_x.shape[2], curr_x.shape[3]))
-            # Class token
             curr_x = vit_model.get_layer("class_token")(curr_x)
-            # Position embs
             curr_x = vit_model.get_layer("Transformer_posembed_input")(curr_x)
             
-            # Transformer blocks - this is where we get the weights!
+            # 2. Block-by-Block Processing (Capture weights from each Transformer stage)
             all_weights = []
             for n in range(12):
                 block = vit_model.get_layer(f"Transformer_encoderblock_{n}")
+                # TransformerBlock returns a tuple: (hidden_states, attention_weights)
                 curr_x, weights = block(curr_x, training=False)
                 all_weights.append(weights.numpy())
             
-            # Now we have all_weights! Perform rollout.
+            # 3. Compute Attention Rollout (Recursive Matrix Multiplication)
+            # This follows the technique from "Quantifying Attention Flow in Transformers"
             num_layers = len(all_weights)
             grid_size = int(np.sqrt(all_weights[0].shape[-1] - 1))
             eye = np.eye(grid_size**2 + 1)
             v = eye.copy()
+            
             for i in range(num_layers):
+                # Average attention across all heads
                 w = all_weights[i][0].mean(axis=0)
+                # Add Identity for Residual connections and Re-normalize
                 w = w + eye
                 w = w / w.sum(axis=-1, keepdims=True)
                 v = np.matmul(w, v)
             
+            # 4. Extract Final Heatmap from the Class Token's Relation to Input Patches
             mask = v[0, 1:].reshape(grid_size, grid_size)
+            # Normalize to 0-1 range for vibrant colormapping
             mask = (mask - mask.min()) / (mask.max() - mask.min() + 1e-8)
             mask_resized = cv2.resize(mask, (224, 224))
             
-            print("Attention map generated via manual layer-by-layer rollout!")
+            print("Attention map generated successfully!")
             return mask_resized
 
         except Exception as e:
             print(f"Manual rollout failed: {e}")
-            import traceback
-            traceback.print_exc()
             return None
 
     except Exception as e:
