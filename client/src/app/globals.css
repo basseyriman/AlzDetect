@@ -1,12 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 :root {
-  --primary: 224 71% 45%; /* Deep Medical Blue */
-  --accent: 262 83% 58%;   /* Neural Purple */
+  --primary: 224 71% 45%;
+  /* Deep Medical Blue */
+  --accent: 262 83% 58%;
+  /* Neural Purple */
   --background: 210 40% 98%;
   --foreground: 222 47% 11%;
   --card: 0 0% 100%;
@@ -20,16 +22,16 @@ body {
 
 @layer components {
   .glass-morphism {
-    @apply backdrop-blur-xl bg-white/70 border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
+    @apply backdrop-blur-xl bg-white/70 border border-white/20 shadow-[0_8px_32px_0_rgba(31, 38, 135, 0.07)];
   }
-  
+
   .glass-card {
     @apply backdrop-blur-md bg-white/40 border border-white/30 shadow-sm hover:shadow-md transition-all duration-300;
   }
 
   .neural-gradient {
     background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent),
-                radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.1), transparent);
+      radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.1), transparent);
   }
 
   .text-gradient {
@@ -37,16 +39,22 @@ body {
   }
 
   .btn-premium {
-    @apply px-8 py-4 bg-indigo-600 text-white font-semibold rounded-2xl
-           shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 hover:shadow-indigo-500/30
-           transition-all duration-300 transform hover:-translate-y-1 active:scale-95;
+    @apply px-8 py-4 bg-indigo-600 text-white font-semibold rounded-2xl shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 hover:shadow-indigo-500/30 transition-all duration-300 transform hover:-translate-y-1 active:scale-95;
   }
 }
 
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 .animate-float {
