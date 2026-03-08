@@ -456,24 +456,46 @@ export default function DetectPage() {
                 )}
               </div>
 
-              {result?.attention_map_visualization && (
-                <div className="mt-8 text-center space-y-4">
-                  <p className="text-sm text-slate-500 font-light italic">
-                    "The neural attention rollout highlights voxel dependencies identified by the ViT architecture."
-                  </p>
-                  <div className="flex justify-center">
+            </div>
+
+            {/* 4. Expert Interpretation Trigger (Separate Card) */}
+            {result?.attention_map_visualization && !suggestions && (
+              <div className="glass-card rounded-[3rem] p-8 lg:p-10 border-white/50 animate-fade-in relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Sparkles className="w-16 h-16" />
+                </div>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                      <Microscope className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Expert Analysis</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <p className="text-sm text-slate-500 font-light italic text-center">
+                      "Perform a deep neural interpretation of the identified voxel dependencies."
+                    </p>
                     <button
                       onClick={getAISuggestions}
                       disabled={isLoadingSuggestions}
-                      className="btn-premium px-8 py-4 text-sm"
+                      className="w-full px-8 py-5 bg-indigo-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98]"
                     >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      {isLoadingSuggestions ? "De-patching Weights..." : "Extract Expert Interpretation"}
+                      {isLoadingSuggestions ? (
+                        <>
+                          <Activity className="animate-spin w-5 h-5" />
+                          De-patching Weights...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Extract Expert Interpretation
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* 4. Expert Insight Bubble */}
             {suggestions && (
