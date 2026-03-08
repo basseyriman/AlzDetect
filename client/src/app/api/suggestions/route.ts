@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
   try {
     const { prediction, confidence } = await request.json();
-    
+
     if (!prediction || confidence === undefined) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -52,17 +52,16 @@ Avoid tentative language like "likely" or "might". Provide a professional, asser
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('OpenAI API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      throw new Error(`OpenAI API failed: ${response.statusText}`);
+      console.error('OpenAI API Error Details:', JSON.stringify(errorData, null, 2));
+      return NextResponse.json(
+        { error: `OpenAI Service Error: ${errorData.error?.message || response.statusText}` },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
     console.log('OpenAI response received');
-    
+
     return NextResponse.json({
       suggestions: data.choices[0].message.content
     });

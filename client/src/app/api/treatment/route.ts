@@ -56,12 +56,11 @@ Note: Provide your recommendations as categorical, definitive expert guidance su
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('OpenAI API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      throw new Error(`OpenAI API failed: ${response.statusText}`);
+      console.error('OpenAI API Error Details:', JSON.stringify(errorData, null, 2));
+      return NextResponse.json(
+        { error: `OpenAI Service Error: ${errorData.error?.message || response.statusText}` },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
