@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Shield, Lock, Eye, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Lock, Eye, CheckCircle2 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 
 export default function PrivacyPage() {

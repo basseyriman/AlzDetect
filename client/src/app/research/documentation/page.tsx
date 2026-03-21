@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Cpu, Terminal, Shield, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Cpu, Terminal, AlertCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 
 export default function DocumentationPage() {

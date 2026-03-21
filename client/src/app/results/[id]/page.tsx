@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { getResultById, StoredResult } from "@/lib/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
-import { ArrowLeft, Download, ShieldCheck, Activity, Printer, ClipboardCheck, Microscope } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Activity, Printer, ClipboardCheck, Microscope } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -129,13 +129,13 @@ export default function DeepReportPage() {
                               <span className="font-black text-slate-900">{(probability * 100).toFixed(1)}%</span>
                             </div>
                             <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-slate-400"
-                                style={{ width: `${probability * 100}%` }}
-                              />
+                                <div
+                                  className="h-full bg-slate-400"
+                                  style={{ width: `${probability * 100}%` }}
+                                />
+                              </div>
                             </div>
-                          </div>
-                      ))}
+                        ))}
                     </div>
                  </div>
              </div>

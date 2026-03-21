@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Brain, ArrowRight, Mail, Lock, Sparkles, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -43,9 +42,10 @@ export default function LoginPage() {
           toast.success("Portal Access Granted");
         }
       }
-    } catch (err: any) {
-      setError(err.message);
-      toast.error(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -61,7 +61,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight italic">Activation Required</h2>
             <p className="text-slate-500 font-light leading-relaxed">
-              We've sent a secure activation link to <span className="font-bold text-slate-900">{email}</span>.
+              We&apos;ve sent a secure activation link to <span className="font-bold text-slate-900">{email}</span>.
             </p>
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
               Please verify your email to initialize your clinical profile.

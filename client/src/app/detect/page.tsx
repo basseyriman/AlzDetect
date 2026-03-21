@@ -1,8 +1,9 @@
 "use client";
 
+
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { CloudUpload, Paperclip, X, Sparkles, Brain, Activity, ArrowLeft, Download, ShieldCheck, Microscope, ClipboardCheck, HeartPulse } from "lucide-react";
+import { CloudUpload, Paperclip, X, Sparkles, Brain, Activity, ArrowLeft, ShieldCheck, Download, ClipboardCheck, Microscope, HeartPulse } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
 import { Navbar } from "@/components/Navbar";
@@ -32,10 +33,9 @@ export default function DetectPage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  if (authLoading || !isAuthenticated) {
-    return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center italic text-slate-400">Authenticating Pulse Access...</div>;
-  }
   const [file, setFile] = useState<File | null>(null);
+  
+
   const [imageUrl, setImageUrl] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +53,10 @@ export default function DetectPage() {
       window.scrollTo({ top: 400, behavior: 'smooth' });
     }
   }, [result]);
+
+  if (authLoading || !isAuthenticated) {
+    return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center italic text-slate-400">Authenticating Pulse Access...</div>;
+  }
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
