@@ -20,9 +20,7 @@ export default function Results() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  if (authLoading || !isAuthenticated) {
-    return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center italic text-slate-400">Authenticating Archive Access...</div>;
-  }
+
   const [results, setResults] = useState<StoredResult[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [selectedResults, setSelectedResults] = useState<Set<string>>(new Set());
@@ -45,6 +43,10 @@ export default function Results() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  if (authLoading || !isAuthenticated) {
+    return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center italic text-slate-400">Authenticating Archive Access...</div>;
+  }
 
   const exportToCSV = () => {
     const headers = [
@@ -325,7 +327,7 @@ export default function Results() {
                           <div className="flex gap-2 min-w-[160px]">
                             {Object.entries(result.class_probabilities)
                               .sort(([, a], [, b]) => b - a)
-                              .map(([className, probability], i) => (
+                              .map(([className, probability]) => (
                                 <div
                                   key={className}
                                   className="h-8 flex-1 bg-slate-50 rounded-lg relative overflow-hidden flex flex-col justify-end group/bar"
