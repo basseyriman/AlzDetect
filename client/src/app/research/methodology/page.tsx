@@ -83,7 +83,7 @@ export default function MethodologyPage() {
                         </p>
                         <div className="p-8 bg-slate-900 rounded-3xl text-indigo-200 font-mono text-sm border-indigo-700/50">
                             {/* Manual Attention Rollout Equation */}
-                            <span className="text-slate-500 italic">// Manual Attention Rollout Equation</span><br />
+                            <span className="text-slate-500 italic">{"//"} Manual Attention Rollout Equation</span><br />
                             <span className="text-indigo-400">identity = identity_matrix(n_patches)</span><br />
                             <span className="text-indigo-400">total_attention = (attention_weights + identity) / 2</span><br />
                             <span className="text-indigo-400">weighted_result = total_attention * previous_result</span>
