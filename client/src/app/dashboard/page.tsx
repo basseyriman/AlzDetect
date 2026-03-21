@@ -5,9 +5,7 @@ import { getResults, StoredResult } from "@/lib/storage";
 import { useState, useEffect } from "react";
 import { 
   Activity, 
-  BarChart3, 
   Brain, 
-  Calendar, 
   Clock, 
   History, 
   ArrowRight, 
