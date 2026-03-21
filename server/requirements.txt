@@ -1,0 +1,14 @@
+fastapi[standard]
+python-dotenv
+uvicorn
+pydantic
+rich
+python-multipart
+tensorflow>=2.16.0
+tensorflow-addons
+numpy
+pillow
+vit-keras
+typing-extensions
+opencv-python
+matplotlib

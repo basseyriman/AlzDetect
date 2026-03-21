@@ -1,0 +1,173 @@
+﻿.venv\Scripts\python : 
+2026-03-21 
+14:06:12.869438: I tens
+orflow/core/util/port.c
+c:153] oneDNN custom 
+operations are on. You 
+may see slightly 
+different numerical 
+results due to 
+floating-point 
+round-off errors from 
+different computation 
+orders. To turn them 
+off, set the 
+environment variable `T
+F_ENABLE_ONEDNN_OPTS=0`
+.
+At line:1 char:12
++ cd server; 
+.venv\Scripts\python 
+src/test_model.py *>&1 
+| Out-File -En ...
++            ~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (2026-03-21 14   
+ :0...ONEDNN_OPTS=0    
+`.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+2026-03-21 
+14:06:16.136310: I tens
+orflow/core/util/port.c
+c:153] oneDNN custom 
+operations are on. You 
+may see slightly 
+different numerical 
+results due to 
+floating-point 
+round-off errors from 
+different computation 
+orders. To turn them 
+off, set the 
+environment variable `T
+F_ENABLE_ONEDNN_OPTS=0`
+.
+2026-03-21 
+14:06:17.446585: I tens
+orflow/core/platform/cp
+u_feature_guard.cc:210]
+ This TensorFlow 
+binary is optimized to 
+use available CPU 
+instructions in 
+performance-critical 
+operations.
+To enable the 
+following 
+instructions: SSE3 
+SSE4.1 SSE4.2 AVX AVX2 
+FMA, in other 
+operations, rebuild 
+TensorFlow with the 
+appropriate compiler 
+flags.
+WARNING:tensorflow:From
+ C:\Users\basse\Documen
+ts\RimanTech\alz-detect
+\server\.venv\Lib\site-
+packages\keras\src\back
+end\tensorflow\core.py:
+232: The name 
+tf.placeholder is 
+deprecated. Please use 
+tf.compat.v1.placeholde
+r instead.
+
+C:\Users\basse\Document
+s\RimanTech\alz-detect\
+server\.venv\Lib\site-p
+ackages\vit_keras\utils
+.py:85: UserWarning: 
+Resizing position 
+embeddings from 12, 12 
+to 7, 7
+  warnings.warn(
+Traceback (most recent 
+call last):
+  File "C:\Users\basse\
+Documents\RimanTech\alz
+-detect\server\src\test
+_model.py", line 20, 
+in test_load
+    base_vit = 
+vit.vit_b32(
+               
+^^^^^^^^^^^^
+  File "C:\Users\basse\
+Documents\RimanTech\alz
+-detect\server\.venv\Li
+b\site-packages\vit_ker
+as\vit.py", line 244, 
+in vit_b32
+    load_pretrained(
+  File "C:\Users\basse\
+Documents\RimanTech\alz
+-detect\server\.venv\Li
+b\site-packages\vit_ker
+as\vit.py", line 167, 
+in load_pretrained
+    utils.load_weights_
+numpy(
+  File "C:\Users\basse\
+Documents\RimanTech\alz
+-detect\server\.venv\Li
+b\site-packages\vit_ker
+as\utils.py", line 
+204, in 
+load_weights_numpy
+    source_weights = 
+[params_dict[k] for k 
+in match["keys"]]
+                     ^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
+  File "C:\Users\basse\
+Documents\RimanTech\alz
+-detect\server\.venv\Li
+b\site-packages\vit_ker
+as\utils.py", line 
+204, in <listcomp>
+    source_weights = 
+[params_dict[k] for k 
+in match["keys"]]
+                      
+~~~~~~~~~~~^^^
+  File "C:\Users\basse\
+Documents\RimanTech\alz
+-detect\server\.venv\Li
+b\site-packages\numpy\l
+ib\_npyio_impl.py", 
+line 257, in 
+__getitem__
+    return 
+format.read_array(
+           
+^^^^^^^^^^^^^^^^^^
+  File "C:\Users\basse\
+Documents\RimanTech\alz
+-detect\server\.venv\Li
+b\site-packages\numpy\l
+ib\_format_impl.py", 
+line 860, in read_array
+    array = 
+numpy.ndarray(count, 
+dtype=dtype)
+            ^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
+numpy._core._exceptions
+._ArrayMemoryError: 
+Unable to allocate 
+9.00 MiB for an array 
+with shape (2359296,) 
+and data type float32
+Testing load from: C:\Users\basse\Documents\RimanTech\alz-detect\server\src\model\RimanBassey_model.h5
+File exists: True
+
+--- ERROR DURING LOADING ---
