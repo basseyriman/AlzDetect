@@ -24,7 +24,7 @@ export default function ResearchPage() {
                             Pioneering <span className="text-gradient">Vision Transformers</span> in Neuro-Diagnosis
                         </h1>
                         <p className="text-lg text-slate-600 font-light leading-relaxed">
-                            AlzDetect represents a shift from traditional Convolutional Neural Networks (CNNs) to global-attention based architectures. Our research focuses on leveraging the "patch-based" spatial understanding of Transformers to identify subtle structural biomarkers in MRI scans associated with early-stage Alzheimer's.
+                            AlzDetect represents a shift from traditional Convolutional Neural Networks (CNNs) to global-attention based architectures. Our research focuses on leveraging the &quot;patch-based&quot; spatial understanding of Transformers to identify subtle structural biomarkers in MRI scans associated with early-stage Alzheimer&apos;s.
                         </p>
                         <div className="grid sm:grid-cols-2 gap-6">
                             <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Cpu, Microscope, Activity, BarChart3, Database, Layers } from "lucide-react";
+import { ArrowLeft, Cpu, Database, Layers } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 
 export default function MethodologyPage() {
@@ -79,9 +79,10 @@ export default function MethodologyPage() {
                             <h2 className="text-2xl font-bold text-slate-900">Explainability (XAI) Protocol</h2>
                         </div>
                         <p className="text-slate-600 font-light leading-relaxed">
-                            The AlzDetect system does not just provide a number. It outputs an "Attention Map" which is the visualization of the model's self-attention weights projected back onto the original MRI scan.
+                            The AlzDetect system does not just provide a number. It outputs an &quot;Attention Map&quot; which is the visualization of the model&apos;s self-attention weights projected back onto the original MRI scan.
                         </p>
                         <div className="p-8 bg-slate-900 rounded-3xl text-indigo-200 font-mono text-sm border-indigo-700/50">
+                            {/* Manual Attention Rollout Equation */}
                             <span className="text-slate-500 italic">// Manual Attention Rollout Equation</span><br />
                             <span className="text-indigo-400">identity = identity_matrix(n_patches)</span><br />
                             <span className="text-indigo-400">total_attention = (attention_weights + identity) / 2</span><br />
