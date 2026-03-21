@@ -93,8 +93,8 @@ Engine will mount at `http://localhost:8000`
 ## 👤 Lead Architect
 
 **Bassey Riman**  
-Global Talent / Exceptional Promise in Technology  
-*Integrating cutting-edge machine learning into scalable, beautifully engineered consumer health interfaces.*
+*Lead Architect & AI Engineer*  
+*Integrating cutting-edge machine learning into scalable, beautifully-engineered consumer health interfaces.*
 
 <div align="center">
   <sub>Built for the future of Neurological Diagnostic Care.</sub>
