@@ -113,7 +113,7 @@ export default function DetectPage() {
 
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER_HOST}/model/predict`,
+        `https://basseyriman-alz-detect-engine.hf.space/model/predict`,
         formData
       );
       const analysisResult = response.data;
