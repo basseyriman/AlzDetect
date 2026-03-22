@@ -1,11 +1,7 @@
+gradio
 fastapi
 uvicorn
-tensorflow-cpu==2.15.0
-vit-keras
-numpy==1.26.4
-pillow
-huggingface_hub
 python-multipart
+huggingface_hub
+pillow
 python-dotenv
-gradio
-opencv-python-headless
