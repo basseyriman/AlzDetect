@@ -3,7 +3,7 @@ title: Alz Detect Api
 emoji: 🏆
 colorFrom: green
 colorTo: indigo
-sdk: gradio
+sdk: docker
 pinned: false
 license: mit
 ---
