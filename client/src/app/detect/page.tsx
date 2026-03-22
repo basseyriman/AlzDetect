@@ -39,6 +39,7 @@ export default function DetectPage() {
   const [imageUrl, setImageUrl] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [suggestions, setSuggestions] = useState<string>("");
   const [displayedSuggestions, setDisplayedSuggestions] = useState<string>("");
@@ -106,6 +107,7 @@ export default function DetectPage() {
     if (!file) return;
 
     setIsLoading(true);
+    setError(null);
     const formData = new FormData();
     formData.append("file", file);
 
@@ -122,8 +124,13 @@ export default function DetectPage() {
         attention_map_url: analysisResult.attention_map_visualization
       });
       setResult(analysisResult);
-    } catch (error) {
-      console.error("Error uploading file:", error);
+    } catch (err: any) {
+      console.error("Error uploading file:", err);
+      const errorMessage = err.response?.status === 503 
+        ? "Cloud AI is currently initializing its 16GB neural brain. Please wait 15 seconds and try again."
+        : "Failed to connect to the Cloud AI engine. Please ensure your internet is stable.";
+      setError(errorMessage);
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
