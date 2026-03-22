@@ -1,6 +1,20 @@
-FROM python:3.11-slim
+# --- Stage 1: Build/Install ---
+FROM python:3.10-slim as builder
 
-# Install ONLY the bare essentials for OpenCV
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# --- Stage 2: Final Runtime ---
+FROM python:3.10-slim
+
+# Install system libraries (Required for OpenCV)
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -8,9 +22,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Install pinned requirements
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy installed packages from builder
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
 
 # Copy application code
 COPY . .
@@ -20,5 +34,5 @@ ENV TF_USE_LEGACY_KERAS=1
 ENV PORT=7860
 EXPOSE 7860
 
-# Entry
+# CMD
 CMD ["python", "app.py"]
