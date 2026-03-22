@@ -1,0 +1,14 @@
+streamlit
+fastapi[standard]
+uvicorn
+tensorflow==2.15.0
+tensorflow-addons==0.23.0
+vit-keras
+numpy==1.26.4
+pillow
+python-multipart
+python-dotenv
+huggingface_hub
+matplotlib
+rich
+opencv-python-headless
