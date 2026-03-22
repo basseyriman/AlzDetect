@@ -1,9 +1,9 @@
 ---
 title: Alz Detect Api
-emoji: 🏆
-colorFrom: green
-colorTo: indigo
-sdk: gradio
+emoji: 🧠
+colorFrom: blue
+colorTo: purple
+sdk: streamlit
 pinned: false
 license: mit
 ---
