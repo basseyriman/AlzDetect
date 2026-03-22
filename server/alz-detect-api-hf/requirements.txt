@@ -4,9 +4,9 @@ uvicorn
 pydantic
 rich
 python-multipart
-tensorflow==2.15.0
+tensorflow>=2.16.0
 tensorflow-addons
-numpy==1.26.4
+numpy
 pillow
 vit-keras
 typing-extensions

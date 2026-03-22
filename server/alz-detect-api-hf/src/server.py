@@ -1,5 +1,5 @@
-import src.shim # MUST BE FIRST
 import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import sys
 import uvicorn
 from fastapi import FastAPI
@@ -35,11 +35,6 @@ app.add_middleware(
 
 # Include all routes
 app.include_router(root_route, prefix="", tags=["root"])
-app.include_router(model_route, prefix="", tags=["model"])
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy", "service": "AlzDetect AI Engine (Local)"}
 
 if __name__ == "__main__":
     uvicorn.run("src.server:app", host="0.0.0.0", port=int(PORT))
