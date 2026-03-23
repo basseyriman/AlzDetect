@@ -39,7 +39,6 @@ export default function DetectPage() {
   const [imageUrl, setImageUrl] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [suggestions, setSuggestions] = useState<string>("");
   const [displayedSuggestions, setDisplayedSuggestions] = useState<string>("");
@@ -107,13 +106,12 @@ export default function DetectPage() {
     if (!file) return;
 
     setIsLoading(true);
-    setErrorMessage(null);
     const formData = new FormData();
     formData.append("file", file);
 
     try {
       const response = await axios.post(
-        `https://basseyriman-alz-detect-engine.hf.space/model/predict`,
+        `${process.env.NEXT_PUBLIC_SERVER_HOST}/model/predict`,
         formData
       );
       const analysisResult = response.data;
@@ -124,16 +122,8 @@ export default function DetectPage() {
         attention_map_url: analysisResult.attention_map_visualization
       });
       setResult(analysisResult);
-    } catch (err: unknown) {
-      console.error("Error uploading file:", err);
-      let msg = "Failed to connect to the Cloud AI engine. Please ensure your internet is stable.";
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 503) {
-          msg = "Cloud AI is currently initializing its 16GB neural brain. Please wait 15 seconds and try again.";
-        }
-      }
-      setErrorMessage(msg);
-      alert(msg);
+    } catch (error) {
+      console.error("Error uploading file:", error);
     } finally {
       setIsLoading(false);
     }
@@ -221,15 +211,10 @@ export default function DetectPage() {
           {/* Left Column: Upload & Classification */}
           <div className="space-y-10 animate-fade-in">
             {/* 1. Upload Section */}
-            <div className={`glass-card rounded-[3rem] p-8 lg:p-12 space-y-10 border-white/50 relative overflow-hidden group ${errorMessage ? 'ring-2 ring-red-500/20' : ''}`}>
+            <div className="glass-card rounded-[3rem] p-8 lg:p-12 space-y-10 border-white/50 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Microscope className="w-24 h-24" />
               </div>
-              {errorMessage && (
-                <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold text-center animate-shake">
-                  {errorMessage}
-                </div>
-              )}
               <div className="text-center space-y-2">
                 <h2 className="text-2xl font-black text-slate-900">Sequence Upload</h2>
                 <p className="text-sm text-slate-400 font-medium lowercase">Supported Formats: DICOM-to-PNG, SVG, JPG, GIF</p>
