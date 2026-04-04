@@ -35,4 +35,3 @@ __pycache__/
 .Python
 env/
 venv/
-*.h5
