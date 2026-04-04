@@ -1,25 +1,23 @@
 import io
 import os
 import sys
+import types
 import base64
 from pathlib import Path
 
-# CRITICAL: Must be set BEFORE importing TensorFlow
+# CRITICAL: Set BEFORE anything imports TensorFlow
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
-# Compatibility shim: vit-keras imports tensorflow_addons at module load
-# If it's missing or broken, provide a minimal mock so the server starts cleanly
-try:
-    import tensorflow_addons  # noqa: F401
-except (ImportError, ModuleNotFoundError):
-    import types
-    tfa_mock = types.ModuleType("tensorflow_addons")
-    tfa_mock.layers = types.ModuleType("tensorflow_addons.layers")
-    tfa_mock.optimizers = types.ModuleType("tensorflow_addons.optimizers")
-    sys.modules["tensorflow_addons"] = tfa_mock
-    sys.modules["tensorflow_addons.layers"] = tfa_mock.layers
-    sys.modules["tensorflow_addons.optimizers"] = tfa_mock.optimizers
-    print("WARNING: tensorflow_addons not found, using compatibility shim")
+# Pre-inject a mock tensorflow_addons into sys.modules unconditionally.
+# This prevents TensorFlow's lazy_loader from trying to import it and
+# causing a RecursionError. vit-keras will use this stub safely.
+if "tensorflow_addons" not in sys.modules:
+    _tfa = types.ModuleType("tensorflow_addons")
+    _tfa.layers = types.ModuleType("tensorflow_addons.layers")
+    _tfa.optimizers = types.ModuleType("tensorflow_addons.optimizers")
+    sys.modules["tensorflow_addons"] = _tfa
+    sys.modules["tensorflow_addons.layers"] = _tfa.layers
+    sys.modules["tensorflow_addons.optimizers"] = _tfa.optimizers
 
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from rich.pretty import pprint
