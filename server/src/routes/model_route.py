@@ -5,12 +5,11 @@ import types
 import base64
 from pathlib import Path
 
-# CRITICAL: Set BEFORE anything imports TensorFlow
+# CRITICAL: Set BEFORE anything imports TensorFlow to ensure Keras 2 is used
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
-# Pre-inject a mock tensorflow_addons into sys.modules unconditionally.
-# This prevents TensorFlow's lazy_loader from trying to import it and
-# causing a RecursionError. vit-keras will use this stub safely.
+# Pre-inject a mock for tensorflow_addons before TF is imported.
+# vit-keras imports it at module load; the mock prevents any import errors.
 if "tensorflow_addons" not in sys.modules:
     _tfa = types.ModuleType("tensorflow_addons")
     _tfa.layers = types.ModuleType("tensorflow_addons.layers")
@@ -133,11 +132,19 @@ def generate_attention_map(image_array):
                 curr_x = tf.reshape(curr_x, (batch_size, h * w, hidden))
             # Now curr_x is (batch, num_patches, hidden)
             
-            # Step 2: Add class token
-            curr_x = vit_model.get_layer("class_token")(curr_x)
+            # Step 2: Add class token (bypassing layer call to prevent keras.ops errors)
+            class_token_layer = vit_model.get_layer("class_token")
+            batch_size_dyn = tf.shape(curr_x)[0]
+            hidden_size = class_token_layer.hidden_size
+            cls_broadcasted = tf.cast(
+                tf.broadcast_to(class_token_layer.cls, [batch_size_dyn, 1, hidden_size]),
+                dtype=curr_x.dtype,
+            )
+            curr_x = tf.concat([cls_broadcasted, curr_x], 1)
             
-            # Step 3: Add positional embeddings
-            curr_x = vit_model.get_layer("Transformer/posembed_input")(curr_x)
+            # Step 3: Add positional embeddings (bypassing layer call)
+            posembed_layer = vit_model.get_layer("Transformer/posembed_input")
+            curr_x = curr_x + tf.cast(posembed_layer.pe, dtype=curr_x.dtype)
             
             # Step 4: Block-by-Block Processing (Capture weights from each Transformer stage)
             all_weights = []

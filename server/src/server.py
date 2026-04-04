@@ -1,7 +1,7 @@
 import os
 import sys
 
-# CRITICAL: Must be set BEFORE anything imports TensorFlow
+# Set BEFORE any tensorflow imports inside the app
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 import uvicorn
