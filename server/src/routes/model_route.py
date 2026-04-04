@@ -104,14 +104,9 @@ def generate_attention_map(image_array):
         print("Extracting attention map via manual layer-by-layer rollout...")
         
         try:
-            # Prepare image for ViT specific preprocessing
-            img = (image_array[0] * 255).astype('uint8')
-            img_resized = cv2.resize(img, (224, 224))
-            X = vit.preprocess_inputs(img_resized)[np.newaxis, :]
-            
             # Step-by-step Execution through the sub-model:
             # 1. Input Transformation & Positional Embedding
-            curr_x = tf.cast(X, tf.float32)
+            curr_x = tf.cast(image_array, tf.float32)
             curr_x = vit_model.get_layer("embedding")(curr_x)
             curr_x = tf.reshape(curr_x, (-1, curr_x.shape[1] * curr_x.shape[2], curr_x.shape[3]))
             curr_x = vit_model.get_layer("class_token")(curr_x)
