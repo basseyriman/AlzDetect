@@ -123,9 +123,13 @@ export default function DetectPage() {
         attention_map_url: analysisResult.attention_map_visualization
       });
       setResult(analysisResult);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error uploading file:", error);
-      toast.error(error.response?.data?.detail || "Connection error: The server might be taking too long to respond. Please try again.");
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.detail || "Connection error: The server might be taking too long to respond. Please try again.");
+      } else {
+        toast.error("Connection error: The server might be taking too long to respond. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
