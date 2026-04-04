@@ -72,7 +72,7 @@ def load_model_if_needed():
             # for manual layer-by-layer traversal during inference.
             
             # Create our main model architecture using the base ViT
-            x = base_vit(inputs, training=False)
+            x = base_vit(inputs, training=False, name="vit-b32")
             x = tf.keras.layers.Dense(256, activation='relu',
                                       kernel_regularizer=tf.keras.regularizers.L2(0.01),
                                       name="dense_40")(x)
