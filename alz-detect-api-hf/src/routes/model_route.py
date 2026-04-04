@@ -200,6 +200,8 @@ def plot_attention_overlay(image_array, attention_map):
     except Exception as e:
         print(f"Error plotting attention overlay: {str(e)}")
         return None
+    finally:
+        plt.close('all')
 
 
 @model_route.get('/')
@@ -278,8 +280,10 @@ async def predict_model(file: UploadFile):
             predicted_class = CLASS_NAMES[np.argmax(prediction[0])]
             confidence = float(np.max(prediction[0]))
 
+            import gc
             print(type(visualization))
-            print(visualization)
+            print(f"Visualization string length: {len(visualization) if visualization else 0}")
+            gc.collect()
 
             return {
                 "file_name": file.filename,
