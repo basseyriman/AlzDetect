@@ -9,9 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import routes
+# Import routes and loading function
 from src.routes.root_route import root_route
-from src.routes.model_route import model_route
+from src.routes.model_route import model_route, load_model_if_needed
 from src.routes.test_route import test_route
 
 load_dotenv()
@@ -35,6 +35,16 @@ app.add_middleware(
 
 # Include all routes
 app.include_router(root_route, prefix="", tags=["root"])
+
+@app.on_event("startup")
+async def startup_event():
+    print("Pre-loading model on startup...")
+    # This ensures the 1GB model is in RAM before the first request
+    try:
+        load_model_if_needed()
+        print("Model pre-loaded successfully!")
+    except Exception as e:
+        print(f"FAILED to pre-load model: {e}")
 
 if __name__ == "__main__":
     uvicorn.run("src.server:app", host="0.0.0.0", port=int(PORT))

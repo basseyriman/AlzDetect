@@ -8,6 +8,7 @@ import Link from "next/link";
 import axios from "axios";
 import { Navbar } from "@/components/Navbar";
 import { saveResult } from "@/lib/storage";
+import { toast } from "sonner";
 
 interface AnalysisResult {
   predicted_class: 'NonDemented' | 'VeryMildDemented' | 'MildDemented' | 'ModerateDemented';
@@ -122,8 +123,9 @@ export default function DetectPage() {
         attention_map_url: analysisResult.attention_map_visualization
       });
       setResult(analysisResult);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading file:", error);
+      toast.error(error.response?.data?.detail || "Connection error: The server might be taking too long to respond. Please try again.");
     } finally {
       setIsLoading(false);
     }
