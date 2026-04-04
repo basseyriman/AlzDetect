@@ -60,6 +60,16 @@ class F1Score(tf.keras.metrics.Metric):
 MODEL = None
 CLASS_NAMES = ["MildDemented", "ModerateDemented", "NonDemented", "VeryMildDemented"]
 
+from vit_keras import layers as vit_layers
+
+class SafeClassToken(vit_layers.ClassToken):
+    # Completely bypasses buggy Keras 3 TF fallback logic that asks for keras.ops
+    def __call__(self, inputs, *args, **kwargs):
+        return self.call(inputs)
+
+class SafeAddPositionEmbs(vit_layers.AddPositionEmbs):
+    def __call__(self, inputs, *args, **kwargs):
+        return self.call(inputs)
 
 def load_model_if_needed():
     global MODEL
@@ -71,10 +81,16 @@ def load_model_if_needed():
 
             # ATTEMPT 1: Load the full saved model with custom objects
             try:
-                print("Attempting to load full model from H5 (TF 2.15 native)...")
+                print("Attempting to load full model from H5 (TF 2.15/2.16 cross-compatible)...")
                 MODEL = tf.keras.models.load_model(
                     MODEL_PATH,
-                    custom_objects={"F1Score": F1Score},
+                    custom_objects={
+                        "F1Score": F1Score,
+                        "ClassToken": SafeClassToken,
+                        "AddPositionEmbs": SafeAddPositionEmbs,
+                        "MultiHeadSelfAttention": vit_layers.MultiHeadSelfAttention,
+                        "TransformerBlock": vit_layers.TransformerBlock
+                    },
                     compile=False
                 )
                 print("Full model loaded successfully!")
