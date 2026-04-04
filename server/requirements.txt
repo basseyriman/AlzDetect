@@ -5,6 +5,7 @@ pydantic
 rich
 python-multipart
 tensorflow>=2.16.0
+tf-keras
 tensorflow-addons
 numpy
 pillow
