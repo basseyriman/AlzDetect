@@ -3,21 +3,14 @@ import os
 import base64
 from pathlib import Path
 
-# --- Legacy Compatibility Shim for vit-keras ---
-import sys
-import types
-sys.modules['tensorflow_addons'] = types.ModuleType('tensorflow_addons')
-# -----------------------------------------------
-
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from rich.pretty import pprint
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-from vit_keras import vit, layers
+from vit_keras import vit
 import matplotlib.pyplot as plt
 import cv2
-import types
 
 model_route = APIRouter(prefix="/model", tags=["model"])
 
@@ -61,15 +54,19 @@ def load_model_if_needed():
             if not os.path.exists(MODEL_PATH):
                 raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
 
-            # ATTEMPT 1: Load the full model (structure + weights)
+            # ATTEMPT 1: Load the full saved model with custom objects
             try:
-                print("Attempting to load full model structure from H5...")
-                MODEL = tf.keras.models.load_model(MODEL_PATH, compile=False)
+                print("Attempting to load full model from H5 (TF 2.15 native)...")
+                MODEL = tf.keras.models.load_model(
+                    MODEL_PATH,
+                    custom_objects={"F1Score": F1Score},
+                    compile=False
+                )
                 print("Full model loaded successfully!")
             except Exception as e:
                 print(f"Could not load full model: {e}. Falling back to manual architecture build.")
-                
-                # ATTEMPT 2: Re-build and load weights (if H5 only contains weights)
+
+                # ATTEMPT 2: Re-build architecture and load weights (weights-only H5)
                 inputs = tf.keras.layers.Input(shape=(224, 224, 3))
                 base_vit = vit.vit_b32(
                     image_size=224,
@@ -77,17 +74,15 @@ def load_model_if_needed():
                     include_top=False,
                     pretrained_top=False
                 )
-                # Ensure the layer name matches the H5 key 'vit-b32'
                 x = base_vit(inputs, training=False, name="vit-b32")
                 x = tf.keras.layers.Dense(256, activation='relu',
                                           kernel_regularizer=tf.keras.regularizers.L2(0.01),
                                           name="dense_40")(x)
                 x = tf.keras.layers.Dropout(0.4, name="dropout_20")(x)
                 outputs = tf.keras.layers.Dense(4, activation='softmax', name="dense_41")(x)
-
                 MODEL = tf.keras.Model(inputs, outputs)
                 MODEL.load_weights(MODEL_PATH, by_name=True)
-                print("Model architecture built and weights restored successfully")
+                print("Model architecture built and weights loaded successfully")
 
         except Exception as e:
             print(f"CRITICAL: Failed to load model: {str(e)}")
