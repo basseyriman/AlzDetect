@@ -94,25 +94,36 @@ def load_model_if_needed():
 def generate_attention_map(image_array):
     global MODEL
     try:
-        # image_array is (1, 224, 224, 3) and normalized [0, 1]
+        # image_array is (1, 224, 224, 3) and normalized via vit.preprocess_inputs
         vit_model = MODEL.get_layer("vit-b32")
         
-        # PORTABLE ATTENTION ROLLOUT IMPLEMENTATION: 
-        # Since standard library utilities discard attention weights 
-        # during model building, we perform a manual forward pass through the 
-        # sub-layers to capture exact focus data.
         print("Extracting attention map via manual layer-by-layer rollout...")
         
         try:
-            # Step-by-step Execution through the sub-model:
-            # 1. Input Transformation & Positional Embedding
+            # Step 1: Run through embedding layer
             curr_x = tf.cast(image_array, tf.float32)
-            curr_x = vit_model.get_layer("embedding")(curr_x)
-            curr_x = tf.reshape(curr_x, (-1, curr_x.shape[1] * curr_x.shape[2], curr_x.shape[3]))
+            embedding_layer = vit_model.get_layer("embedding")
+            curr_x = embedding_layer(curr_x)
+            
+            # Dynamically handle embedding output shape:
+            # embedding outputs (batch, h, w, hidden) for conv patch embedding
+            # OR (batch, num_patches, hidden) already flattened
+            if len(curr_x.shape) == 4:
+                # (batch, h, w, hidden) -> flatten patches
+                batch_size = tf.shape(curr_x)[0]
+                h = curr_x.shape[1]
+                w = curr_x.shape[2]
+                hidden = curr_x.shape[3]
+                curr_x = tf.reshape(curr_x, (batch_size, h * w, hidden))
+            # Now curr_x is (batch, num_patches, hidden)
+            
+            # Step 2: Add class token
             curr_x = vit_model.get_layer("class_token")(curr_x)
+            
+            # Step 3: Add positional embeddings
             curr_x = vit_model.get_layer("Transformer/posembed_input")(curr_x)
             
-            # 2. Block-by-Block Processing (Capture weights from each Transformer stage)
+            # Step 4: Block-by-Block Processing (Capture weights from each Transformer stage)
             all_weights = []
             for n in range(12):
                 block = vit_model.get_layer(f"Transformer/encoderblock_{n}")
@@ -120,14 +131,15 @@ def generate_attention_map(image_array):
                 curr_x, weights = block(curr_x, training=False)
                 all_weights.append(weights.numpy())
             
-            # 3. Compute Attention Rollout (Recursive Matrix Multiplication)
-            # This follows the technique from "Quantifying Attention Flow in Transformers"
-            num_layers = len(all_weights)
-            grid_size = int(np.sqrt(all_weights[0].shape[-1] - 1))
-            eye = np.eye(grid_size**2 + 1)
+            # Step 5: Attention Rollout ("Quantifying Attention Flow in Transformers")
+            total_tokens = all_weights[0].shape[-1]  # includes class token
+            num_patches = total_tokens - 1
+            grid_size = int(np.sqrt(num_patches))
+            
+            eye = np.eye(total_tokens)
             v = eye.copy()
             
-            for i in range(num_layers):
+            for i in range(len(all_weights)):
                 # Average attention across all heads
                 w = all_weights[i][0].mean(axis=0)
                 # Add Identity for Residual connections and Re-normalize
@@ -135,13 +147,12 @@ def generate_attention_map(image_array):
                 w = w / w.sum(axis=-1, keepdims=True)
                 v = np.matmul(w, v)
             
-            # 4. Extract Final Heatmap from the Class Token's Relation to Input Patches
+            # Step 6: Extract heatmap from Class Token -> Patch attention
             mask = v[0, 1:].reshape(grid_size, grid_size)
-            # Normalize to 0-1 range for vibrant colormapping
             mask = (mask - mask.min()) / (mask.max() - mask.min() + 1e-8)
             mask_resized = cv2.resize(mask, (224, 224))
             
-            print("Attention map rollout calculated successfully!")
+            print(f"Attention map rollout successful! Grid: {grid_size}x{grid_size}")
             return mask_resized
 
         except Exception as e:
