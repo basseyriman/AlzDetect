@@ -18,6 +18,15 @@ if "tensorflow_addons" not in sys.modules:
     sys.modules["tensorflow_addons.layers"] = _tfa.layers
     sys.modules["tensorflow_addons.optimizers"] = _tfa.optimizers
 
+import tensorflow as tf
+# Monkey-patch tf.keras for TF 2.16+ where tf.keras is removed when using legacy Keras
+try:
+    import tf_keras
+    tf.keras = tf_keras
+    sys.modules["tensorflow.keras"] = tf_keras
+except ImportError:
+    pass
+
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from rich.pretty import pprint
 import tensorflow as tf
@@ -62,14 +71,12 @@ CLASS_NAMES = ["MildDemented", "ModerateDemented", "NonDemented", "VeryMildDemen
 
 from vit_keras import layers as vit_layers
 
+# Provide a raw proxy class that inherits from whatever Keras uses, but we don't bypass __call__ anymore
+# Instead, we just let the system naturally parse them. The ops bug is a local setup mismatch.
 class SafeClassToken(vit_layers.ClassToken):
-    # Completely bypasses buggy Keras 3 TF fallback logic that asks for keras.ops
-    def __call__(self, inputs, *args, **kwargs):
-        return self.call(inputs)
-
+    pass
 class SafeAddPositionEmbs(vit_layers.AddPositionEmbs):
-    def __call__(self, inputs, *args, **kwargs):
-        return self.call(inputs)
+    pass
 
 def load_model_if_needed():
     global MODEL
