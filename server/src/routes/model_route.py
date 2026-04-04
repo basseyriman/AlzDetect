@@ -1,7 +1,25 @@
 import io
 import os
+import sys
 import base64
 from pathlib import Path
+
+# CRITICAL: Must be set BEFORE importing TensorFlow
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
+# Compatibility shim: vit-keras imports tensorflow_addons at module load
+# If it's missing or broken, provide a minimal mock so the server starts cleanly
+try:
+    import tensorflow_addons  # noqa: F401
+except (ImportError, ModuleNotFoundError):
+    import types
+    tfa_mock = types.ModuleType("tensorflow_addons")
+    tfa_mock.layers = types.ModuleType("tensorflow_addons.layers")
+    tfa_mock.optimizers = types.ModuleType("tensorflow_addons.optimizers")
+    sys.modules["tensorflow_addons"] = tfa_mock
+    sys.modules["tensorflow_addons.layers"] = tfa_mock.layers
+    sys.modules["tensorflow_addons.optimizers"] = tfa_mock.optimizers
+    print("WARNING: tensorflow_addons not found, using compatibility shim")
 
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from rich.pretty import pprint

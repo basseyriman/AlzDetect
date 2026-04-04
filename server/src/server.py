@@ -1,5 +1,9 @@
 import os
 import sys
+
+# CRITICAL: Must be set BEFORE anything imports TensorFlow
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
 import uvicorn
 from fastapi import FastAPI
 from dotenv import load_dotenv
@@ -34,6 +38,8 @@ app.add_middleware(
 
 # Include all routes
 app.include_router(root_route, prefix="", tags=["root"])
+app.include_router(model_route)
+app.include_router(test_route)
 
 @app.on_event("startup")
 async def startup_event():
