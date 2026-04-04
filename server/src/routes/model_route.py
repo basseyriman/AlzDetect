@@ -74,16 +74,17 @@ def load_model_if_needed():
             # Create our main model architecture using the base ViT
             x = base_vit(inputs, training=False)
             x = tf.keras.layers.Dense(256, activation='relu',
-                                      kernel_regularizer=tf.keras.regularizers.L2(0.01))(x)
-            x = tf.keras.layers.Dropout(0.4)(x)
-            outputs = tf.keras.layers.Dense(4, activation='softmax')(x)
+                                      kernel_regularizer=tf.keras.regularizers.L2(0.01),
+                                      name="dense_40")(x)
+            x = tf.keras.layers.Dropout(0.4, name="dropout_20")(x)
+            outputs = tf.keras.layers.Dense(4, activation='softmax', name="dense_41")(x)
 
             MODEL = tf.keras.Model(inputs, outputs)
 
             if not os.path.exists(MODEL_PATH):
                 raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
 
-            MODEL.load_weights(MODEL_PATH)
+            MODEL.load_weights(MODEL_PATH, by_name=True)
             print("Model loaded and weights restored successfully")
         except Exception as e:
             print(f"Error loading model: {str(e)}")
