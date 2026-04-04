@@ -5,8 +5,7 @@ import types
 import base64
 from pathlib import Path
 
-# CRITICAL: Set BEFORE anything imports TensorFlow to ensure Keras 2 is used
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
+# Legacy keras config removed
 
 # Pre-inject a mock for tensorflow_addons before TF is imported.
 # vit-keras imports it at module load; the mock prevents any import errors.

@@ -1,9 +1,7 @@
 import os
 import sys
 
-# Set BEFORE any tensorflow imports inside the app
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
-
+# Remove legacy keras config
 import uvicorn
 from fastapi import FastAPI
 from dotenv import load_dotenv
@@ -40,6 +38,23 @@ app.add_middleware(
 app.include_router(root_route, prefix="", tags=["root"])
 app.include_router(model_route)
 app.include_router(test_route)
+
+@app.get("/debug_env")
+async def debug_env():
+    import tensorflow as tf
+    import keras
+    try:
+        import tf_keras
+        tf_keras_ver = tf_keras.__version__
+    except ImportError:
+        tf_keras_ver = "Not Installed"
+        
+    return {
+        "tensorflow": tf.__version__,
+        "keras": keras.__version__,
+        "tf_keras": tf_keras_ver,
+        "python": sys.version
+    }
 
 @app.on_event("startup")
 async def startup_event():
