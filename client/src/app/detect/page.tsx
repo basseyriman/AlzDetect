@@ -457,35 +457,51 @@ export default function DetectPage() {
                 </div>
               </div>
 
-              <div className="w-full aspect-square relative rounded-[2.5rem] overflow-hidden bg-slate-900 border-8 border-white shadow-3xl">
-                {result?.attention_map_visualization ? (
-                  <>
+              <div className="space-y-6">
+                <div className={`w-full ${result?.attention_map_visualization ? 'aspect-[2/1]' : 'aspect-square'} relative rounded-[2.5rem] overflow-hidden bg-slate-950 border border-white/10 shadow-[inset_0_0_40px_rgba(168,85,247,0.15)] ring-1 ring-white/5 transition-all duration-700 group/scan`}>
+                  {/* Neural Corner Brackets (Premium HUD) */}
+                  <div className="absolute top-6 left-6 w-8 h-8 border-t-2 border-l-2 border-white/30 rounded-tl-sm transition-transform group-hover/scan:-translate-x-1 group-hover/scan:-translate-y-1"></div>
+                  <div className="absolute top-6 right-6 w-8 h-8 border-t-2 border-r-2 border-white/30 rounded-tr-sm transition-transform group-hover/scan:translate-x-1 group-hover/scan:-translate-y-1"></div>
+                  <div className="absolute bottom-6 left-6 w-8 h-8 border-b-2 border-l-2 border-white/30 rounded-bl-sm transition-transform group-hover/scan:-translate-x-1 group-hover/scan:translate-y-1"></div>
+                  <div className="absolute bottom-6 right-6 w-8 h-8 border-b-2 border-r-2 border-white/30 rounded-br-sm transition-transform group-hover/scan:translate-x-1 group-hover/scan:translate-y-1"></div>
+
+                  {/* HUD Metadata Labels */}
+                  <div className="absolute top-8 left-16 text-[8px] font-mono text-white/20 tracking-[0.2em] uppercase">Neural_Scan_Active</div>
+                  <div className="absolute top-8 right-16 text-[8px] font-mono text-white/20 tracking-[0.2em] uppercase text-right">ViT_B32_Transform</div>
+                  <div className="absolute bottom-8 left-16 text-[8px] font-mono text-white/20 tracking-[0.2em] uppercase">Slice_Z_Depth_0.42</div>
+                  <div className="absolute bottom-8 right-16 text-[8px] font-mono text-white/20 tracking-[0.2em] uppercase text-right">Mode: Diagnostic</div>
+
+                  {result?.attention_map_visualization ? (
                     <Image
                       src={`data:image/png;base64,${result.attention_map_visualization}`}
                       alt="Attention map"
                       fill
-                      className="object-contain animate-fade-in"
+                      className="object-contain animate-fade-in p-6"
                       unoptimized
                     />
-                    <div className="absolute inset-x-0 bottom-0 p-8 flex justify-center pointer-events-none">
-                      <div className="px-6 py-2 bg-slate-900/90 backdrop-blur rounded-2xl border border-white/10 flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded bg-red-500"></div>
-                          <span className="text-[10px] font-black text-white/70 uppercase">High Focus</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded bg-blue-500"></div>
-                          <span className="text-[10px] font-black text-white/70 uppercase">Baseline</span>
-                        </div>
+                  ) : imageUrl ? (
+                    <Image src={imageUrl} alt="Scan preview" fill className="object-contain p-6" />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700 space-y-4">
+                      <Brain className="w-24 h-24 opacity-10 animate-pulse-slow" />
+                      <p className="text-xs font-black uppercase tracking-widest opacity-30">Scan Volume Empty</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Premium Diagnostic Legend - Now below the scans */}
+                {result?.attention_map_visualization && (
+                  <div className="flex justify-center animate-fade-in">
+                    <div className="px-8 py-3 bg-white/50 border border-slate-200 backdrop-blur-sm rounded-full flex items-center gap-10 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                        <span className="text-[11px] font-black text-slate-600 uppercase tracking-tighter">High Focus Area</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+                        <span className="text-[11px] font-black text-slate-600 uppercase tracking-tighter">Baseline Reference</span>
                       </div>
                     </div>
-                  </>
-                ) : imageUrl ? (
-                  <Image src={imageUrl} alt="Scan preview" fill className="object-contain" />
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700 space-y-4">
-                    <Brain className="w-24 h-24 opacity-10 animate-pulse-slow" />
-                    <p className="text-xs font-black uppercase tracking-widest opacity-30">Scan Volume Empty</p>
                   </div>
                 )}
               </div>

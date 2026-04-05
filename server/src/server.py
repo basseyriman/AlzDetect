@@ -1,7 +1,11 @@
 import os
 import sys
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 # 1. Global Keras 3 Compatibility Shim for Keras 2 environments
+import tensorflow as tf
+import keras
+
 # Global TensorFlow Patching for legacy compatibility
 if not hasattr(tf, "concatenate"):
     tf.concatenate = tf.concat

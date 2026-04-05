@@ -1,5 +1,6 @@
 import io
 import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import sys
 import types
 import base64
@@ -110,10 +111,107 @@ from vit_keras import layers as vit_layers
 
 # Provide a raw proxy class that inherits from whatever Keras uses, but we don't bypass __call__ anymore
 # Instead, we just let the system naturally parse them. The ops bug is a local setup mismatch.
-class SafeClassToken(vit_layers.ClassToken):
-    pass
-class SafeAddPositionEmbs(vit_layers.AddPositionEmbs):
-    pass
+# 3. ROBUST CUSTOM LAYERS (Fully Independent of vit-keras internals)
+@tf.keras.utils.register_keras_serializable()
+class SafeClassToken(tf.keras.layers.Layer):
+    """Standalone implementation of ClassToken to bypass ops errors."""
+    def build(self, input_shape):
+        self.hidden_size = input_shape[-1]
+        self.cls = self.add_weight(
+            name="cls",
+            shape=(1, 1, self.hidden_size),
+            initializer="zeros",
+            trainable=True,
+            dtype="float32"
+        )
+    def call(self, inputs):
+        batch_size = tf.shape(inputs)[0]
+        cls_broadcasted = tf.cast(
+            tf.broadcast_to(self.cls, [batch_size, 1, self.hidden_size]),
+            dtype=inputs.dtype,
+        )
+        # Use tf.concat explicitly (not ops.concatenate)
+        return tf.concat([cls_broadcasted, inputs], axis=1)
+    def get_config(self):
+        return super().get_config()
+
+@tf.keras.utils.register_keras_serializable()
+class SafeAddPositionEmbs(tf.keras.layers.Layer):
+    """Standalone implementation of AddPositionEmbs to bypass ops errors."""
+    def build(self, input_shape):
+        self.pe = self.add_weight(
+            name="pos_embedding",
+            shape=(1, input_shape[1], input_shape[2]),
+            initializer=tf.random_normal_initializer(stddev=0.06),
+            trainable=True,
+            dtype="float32"
+        )
+    def call(self, inputs):
+        # Simply add positional embeddings
+        return inputs + tf.cast(self.pe, dtype=inputs.dtype)
+    def get_config(self):
+        return super().get_config()
+
+@tf.keras.utils.register_keras_serializable()
+class SafeMultiHeadSelfAttention(tf.keras.layers.Layer):
+    def __init__(self, num_heads, **kwargs):
+        super().__init__(**kwargs)
+        self.num_heads = num_heads
+    def build(self, input_shape):
+        hidden_size = input_shape[-1]
+        self.projection_dim = hidden_size // self.num_heads
+        self.query_dense = tf.keras.layers.Dense(hidden_size, name="query")
+        self.key_dense = tf.keras.layers.Dense(hidden_size, name="key")
+        self.value_dense = tf.keras.layers.Dense(hidden_size, name="value")
+        self.combine_heads = tf.keras.layers.Dense(hidden_size, name="out")
+    def call(self, inputs):
+        batch_size = tf.shape(inputs)[0]
+        query = self.query_dense(inputs)
+        key = self.key_dense(inputs)
+        value = self.value_dense(inputs)
+        query = tf.transpose(tf.reshape(query, (batch_size, -1, self.num_heads, self.projection_dim)), perm=[0, 2, 1, 3])
+        key = tf.transpose(tf.reshape(key, (batch_size, -1, self.num_heads, self.projection_dim)), perm=[0, 2, 1, 3])
+        value = tf.transpose(tf.reshape(value, (batch_size, -1, self.num_heads, self.projection_dim)), perm=[0, 2, 1, 3])
+        score = tf.matmul(query, key, transpose_b=True)
+        dim_key = tf.cast(tf.shape(key)[-1], score.dtype)
+        weights = tf.nn.softmax(score / tf.math.sqrt(dim_key), axis=-1)
+        output = tf.matmul(weights, value)
+        output = tf.transpose(output, perm=[0, 2, 1, 3])
+        concat_attention = tf.reshape(output, (batch_size, -1, self.num_heads * self.projection_dim))
+        return self.combine_heads(concat_attention), weights
+    def get_config(self):
+        config = super().get_config()
+        config.update({"num_heads": self.num_heads})
+        return config
+
+@tf.keras.utils.register_keras_serializable()
+class SafeTransformerBlock(tf.keras.layers.Layer):
+    def __init__(self, num_heads, mlp_dim, dropout, **kwargs):
+        super().__init__(**kwargs)
+        self.num_heads = num_heads
+        self.mlp_dim = mlp_dim
+        self.dropout = dropout
+    def build(self, input_shape):
+        self.att = SafeMultiHeadSelfAttention(num_heads=self.num_heads, name="MultiHeadDotProductAttention_1")
+        self.mlpblock = tf.keras.Sequential([
+            tf.keras.layers.Dense(self.mlp_dim, activation="linear", name=f"{self.name}/Dense_0"),
+            tf.keras.layers.Lambda(lambda x: tf.keras.activations.gelu(x, approximate=False))
+        ])
+        self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6, name="LayerNorm_0")
+        self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6, name="LayerNorm_1")
+        self.dropout_layer = tf.keras.layers.Dropout(self.dropout)
+    def call(self, inputs):
+        x = self.layernorm1(inputs)
+        x, weights = self.att(x)
+        x = self.dropout_layer(x)
+        x = x + inputs
+        y = self.layernorm2(x)
+        y = self.mlpblock(y)
+        return x + y, weights
+    def get_config(self):
+        config = super().get_config()
+        config.update({"num_heads": self.num_heads, "mlp_dim": self.mlp_dim, "dropout": self.dropout})
+        return config
 
 def load_model_if_needed():
     global MODEL
@@ -123,43 +221,25 @@ def load_model_if_needed():
             if not os.path.exists(MODEL_PATH):
                 raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
 
-            # ATTEMPT 1: Load the full saved model with custom objects
-            try:
-                print("Attempting to load full model from H5 (TF 2.15/2.16 cross-compatible)...")
-                MODEL = tf.keras.models.load_model(
-                    MODEL_PATH,
-                    custom_objects={
-                        "F1Score": F1Score,
-                        "ClassToken": SafeClassToken,
-                        "AddPositionEmbs": SafeAddPositionEmbs,
-                        "SafeClassToken": SafeClassToken,
-                        "SafeAddPositionEmbs": SafeAddPositionEmbs,
-                        "MultiHeadSelfAttention": vit_layers.MultiHeadSelfAttention,
-                        "TransformerBlock": vit_layers.TransformerBlock
-                    },
-                    compile=False
-                )
-                print("Full model loaded successfully!")
-            except Exception as e:
-                print(f"Could not load full model: {e}. Falling back to manual architecture build.")
-
-                # ATTEMPT 2: Re-build architecture and load weights (weights-only H5)
-                inputs = tf.keras.layers.Input(shape=(224, 224, 3))
-                base_vit = vit.vit_b32(
-                    image_size=224,
-                    pretrained=True,
-                    include_top=False,
-                    pretrained_top=False
-                )
-                x = base_vit(inputs, training=False, name="vit-b32")
-                x = tf.keras.layers.Dense(256, activation='relu',
-                                          kernel_regularizer=tf.keras.regularizers.L2(0.01),
-                                          name="dense_40")(x)
-                x = tf.keras.layers.Dropout(0.4, name="dropout_20")(x)
-                outputs = tf.keras.layers.Dense(4, activation='softmax', name="dense_41")(x)
-                MODEL = tf.keras.Model(inputs, outputs)
-                MODEL.load_weights(MODEL_PATH, by_name=True)
-                print("Model architecture built and weights loaded successfully")
+            # ATTEMPT 2: Re-build architecture and load weights (weights-only H5)
+            # Directly use this to avoid `load_model` native C++ segfault in TF 2.15/2.16
+            inputs = tf.keras.layers.Input(shape=(224, 224, 3))
+            base_vit = vit.vit_b32(
+                image_size=224,
+                pretrained=True,
+                include_top=False,
+                pretrained_top=False
+            )
+            base_vit._name = "vit-b32"
+            x = base_vit(inputs, training=False)
+            x = tf.keras.layers.Dense(256, activation='relu',
+                                      kernel_regularizer=tf.keras.regularizers.L2(0.01),
+                                      name="dense_40")(x)
+            x = tf.keras.layers.Dropout(0.4, name="dropout_20")(x)
+            outputs = tf.keras.layers.Dense(4, activation='softmax', name="dense_41")(x)
+            MODEL = tf.keras.Model(inputs, outputs)
+            MODEL.load_weights(MODEL_PATH, by_name=True)
+            print("Model architecture built and weights loaded successfully")
 
         except Exception as e:
             print(f"CRITICAL: Failed to load model: {str(e)}")
@@ -262,12 +342,13 @@ def plot_attention_overlay(image_array, attention_map):
             plt.title("Original Image (Attention Map Unavailable)")
             plt.axis("off")
         else:
-            plt.figure(figsize=(10, 5))
-
+            # Significantly increase DPI and figure size for maximum diagnostic text prominence
+            plt.figure(figsize=(14, 9), facecolor='black', dpi=150)
+            
             # Plot original image
             plt.subplot(1, 2, 1)
             plt.imshow(image_array)
-            plt.title("Original Image")
+            plt.title("ORIGINAL MRI SCAN", color='white', fontsize=16, fontweight='black', pad=25)
             plt.axis("off")
 
             # Normalize attention map for visualization
@@ -279,9 +360,16 @@ def plot_attention_overlay(image_array, attention_map):
             # Plot image with transparent attention overlay
             plt.subplot(1, 2, 2)
             plt.imshow(image_array)
-            plt.imshow(norm_attention, cmap="jet", alpha=0.5)
-            plt.title("Attention Map Overlay")
+            # Using alpha=0.6 for better visibility of the attention zones
+            plt.imshow(norm_attention, cmap="jet", alpha=0.6)
+            plt.title("ATTENTION HEATMAP", color='white', fontsize=16, fontweight='black', pad=25)
             plt.axis("off")
+
+            # Main protocol title at the bottom with extreme visibility
+            plt.suptitle("ALZHEIMER'S DIAGNOSTIC PROTOCOL: VIT-B/32 ANALYSIS", 
+                         color='white', fontsize=20, fontweight='black', y=0.08)
+
+            plt.tight_layout(rect=[0, 0.12, 1, 0.95])
 
         # Save plot to bytes buffer
         buf = io.BytesIO()
