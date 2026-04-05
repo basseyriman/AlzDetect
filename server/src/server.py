@@ -68,18 +68,36 @@ app.include_router(test_route)
 async def debug_env():
     import tensorflow as tf
     import keras
+    
     try:
         import tf_keras
         tf_keras_ver = tf_keras.__version__
     except ImportError:
         tf_keras_ver = "Not Installed"
         
+    # Test the shim
+    shim_test = "Fail"
+    try:
+        if hasattr(keras, "ops") and hasattr(keras.ops, "concatenate"):
+            # Check if it actually points to tf.concat
+            if keras.ops.concatenate == tf.concat:
+                shim_test = "Success (Mapped to tf.concat)"
+            else:
+                shim_test = f"Success (Mapped to {type(keras.ops.concatenate)})"
+        elif hasattr(keras, "ops"):
+            shim_test = "Partial (Ops exists but no concatenate)"
+        else:
+            shim_test = "Fail (No ops at all)"
+    except Exception as e:
+        shim_test = f"Error: {str(e)}"
+        
     return {
         "tensorflow": tf.__version__,
         "keras": keras.__version__,
         "tf_keras": tf_keras_ver,
         "python": sys.version,
-        "has_ops_shim": hasattr(keras, "ops")
+        "has_ops_shim": hasattr(keras, "ops"),
+        "shim_test": shim_test
     }
 
 @app.on_event("startup")
