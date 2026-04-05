@@ -5,9 +5,10 @@ import types
 import base64
 from pathlib import Path
 
-# 1. ROBUST KERAS 3 SHIM (Unconditional)
+# 1. ROBUST KERAS 3 SHIM (Unconditional + SysModule Injection)
 import keras
 import tensorflow as tf
+import sys
 
 class KerasOpsShim:
     def __init__(self, original_ops=None):
@@ -30,6 +31,10 @@ class KerasOpsShim:
 
 # Apply shim even if ops already exist to ensure all ops are mapped correctly
 keras.ops = KerasOpsShim(getattr(keras, "ops", None))
+sys.modules["keras.ops"] = keras.ops
+if "tensorflow.keras" in sys.modules:
+    sys.modules["tensorflow.keras.ops"] = keras.ops
+
 
 # 2. COMPLETE TFA MOCK
 if "tensorflow_addons" not in sys.modules:

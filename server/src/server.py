@@ -23,6 +23,9 @@ class KerasOpsShim:
         return tf.shape
 
 keras.ops = KerasOpsShim(getattr(keras, "ops", None))
+sys.modules["keras.ops"] = keras.ops
+if "tensorflow.keras" in sys.modules:
+    sys.modules["tensorflow.keras.ops"] = keras.ops
 
 import uvicorn
 from fastapi import FastAPI
