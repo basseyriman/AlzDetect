@@ -5,24 +5,31 @@ import types
 import base64
 from pathlib import Path
 
-# 1. BRAIN-DEAD SIMPLE KERAS 3 SHIM
+# 1. ROBUST KERAS 3 SHIM (Unconditional)
 import keras
-if not hasattr(keras, "ops"):
-    import tensorflow as tf
-    class KerasOpsShim:
-        def __getattr__(self, name):
-            import tensorflow as tf
-            # Map Keras 3 op names to TensorFlow equivalents
-            if name == "concatenate":
-                return tf.concat
-            if name == "stack":
-                return tf.stack
-            return getattr(tf, name)
-        @property
-        def shape(self):
-            import tensorflow as tf
-            return tf.shape
-    keras.ops = KerasOpsShim()
+import tensorflow as tf
+
+class KerasOpsShim:
+    def __init__(self, original_ops=None):
+        self.original_ops = original_ops
+    def __getattr__(self, name):
+        import tensorflow as tf
+        # Direct mappings for Keras 3 -> TF 2
+        if name == "concatenate":
+            return tf.concat
+        if name == "stack":
+            return tf.stack
+        # Use existing op if it exists, else fall back to tf
+        if self.original_ops and hasattr(self.original_ops, name):
+            return getattr(self.original_ops, name)
+        return getattr(tf, name)
+    @property
+    def shape(self):
+        import tensorflow as tf
+        return tf.shape
+
+# Apply shim even if ops already exist to ensure all ops are mapped correctly
+keras.ops = KerasOpsShim(getattr(keras, "ops", None))
 
 # 2. COMPLETE TFA MOCK
 if "tensorflow_addons" not in sys.modules:
