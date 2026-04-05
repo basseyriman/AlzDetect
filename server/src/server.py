@@ -1,7 +1,19 @@
 import os
 import sys
 
-# Remove legacy keras config
+# 1. Global Keras 3 Compatibility Shim for Keras 2 environments
+import keras
+if not hasattr(keras, "ops"):
+    import tensorflow as tf
+    class KerasOpsShim:
+        def __getattr__(self, name):
+            return getattr(tf, name)
+        @property
+        def shape(self):
+            import tensorflow as tf
+            return tf.shape
+    keras.ops = KerasOpsShim()
+
 import uvicorn
 from fastapi import FastAPI
 from dotenv import load_dotenv

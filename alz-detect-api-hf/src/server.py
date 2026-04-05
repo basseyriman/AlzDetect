@@ -1,6 +1,19 @@
 import os
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import sys
+
+# 1. Global Keras 3 Compatibility Shim
+import keras
+if not hasattr(keras, "ops"):
+    import tensorflow as tf
+    class KerasOpsShim:
+        def __getattr__(self, name):
+            return getattr(tf, name)
+        @property
+        def shape(self):
+            import tensorflow as tf
+            return tf.shape
+    keras.ops = KerasOpsShim()
+
 import uvicorn
 from fastapi import FastAPI
 from dotenv import load_dotenv

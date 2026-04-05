@@ -5,19 +5,31 @@ import types
 import base64
 from pathlib import Path
 
-# CRITICAL: Set BEFORE anything imports TensorFlow
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
+# 1. Global Keras 3 Compatibility Shim for Keras 2.15/2.16 environments
+import keras
+if not hasattr(keras, "ops"):
+    import tensorflow as tf
+    class KerasOpsShim:
+        def __getattr__(self, name):
+            return getattr(tf, name)
+        @property
+        def shape(self):
+            import tensorflow as tf
+            return tf.shape
+    keras.ops = KerasOpsShim()
 
-# Pre-inject a mock tensorflow_addons into sys.modules unconditionally.
-# This prevents TensorFlow's lazy_loader from trying to import it and
-# causing a RecursionError. vit-keras will use this stub safely.
+# 2. Complete TFA Mock to prevent import errors in vit-keras
 if "tensorflow_addons" not in sys.modules:
+    import tensorflow as tf
     _tfa = types.ModuleType("tensorflow_addons")
     _tfa.layers = types.ModuleType("tensorflow_addons.layers")
     _tfa.optimizers = types.ModuleType("tensorflow_addons.optimizers")
+    _tfa.activations = types.ModuleType("tensorflow_addons.activations")
+    _tfa.activations.gelu = tf.nn.gelu
     sys.modules["tensorflow_addons"] = _tfa
     sys.modules["tensorflow_addons.layers"] = _tfa.layers
     sys.modules["tensorflow_addons.optimizers"] = _tfa.optimizers
+    sys.modules["tensorflow_addons.activations"] = _tfa.activations
 
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from rich.pretty import pprint

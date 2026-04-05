@@ -5,17 +5,32 @@ import types
 import base64
 from pathlib import Path
 
-# Legacy keras config removed
+# 1. BRAIN-DEAD SIMPLE KERAS 3 SHIM
+import keras
+if not hasattr(keras, "ops"):
+    import tensorflow as tf
+    class KerasOpsShim:
+        def __getattr__(self, name):
+            # Redirect all Keras 3 'ops' calls (e.g. keras.ops.shape) to base TensorFlow
+            return getattr(tf, name)
+        @property
+        def shape(self):
+            import tensorflow as tf
+            return tf.shape
+    keras.ops = KerasOpsShim()
 
-# Pre-inject a mock for tensorflow_addons before TF is imported.
-# vit-keras imports it at module load; the mock prevents any import errors.
+# 2. COMPLETE TFA MOCK
 if "tensorflow_addons" not in sys.modules:
+    import tensorflow as tf
     _tfa = types.ModuleType("tensorflow_addons")
     _tfa.layers = types.ModuleType("tensorflow_addons.layers")
     _tfa.optimizers = types.ModuleType("tensorflow_addons.optimizers")
+    _tfa.activations = types.ModuleType("tensorflow_addons.activations")
+    _tfa.activations.gelu = tf.nn.gelu
     sys.modules["tensorflow_addons"] = _tfa
     sys.modules["tensorflow_addons.layers"] = _tfa.layers
     sys.modules["tensorflow_addons.optimizers"] = _tfa.optimizers
+    sys.modules["tensorflow_addons.activations"] = _tfa.activations
 
 import tensorflow as tf
 # Monkey-patch tf.keras for TF 2.16+ where tf.keras is removed when using legacy Keras
@@ -94,6 +109,8 @@ def load_model_if_needed():
                         "F1Score": F1Score,
                         "ClassToken": SafeClassToken,
                         "AddPositionEmbs": SafeAddPositionEmbs,
+                        "SafeClassToken": SafeClassToken,
+                        "SafeAddPositionEmbs": SafeAddPositionEmbs,
                         "MultiHeadSelfAttention": vit_layers.MultiHeadSelfAttention,
                         "TransformerBlock": vit_layers.TransformerBlock
                     },
