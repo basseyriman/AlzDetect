@@ -11,7 +11,12 @@ if not hasattr(keras, "ops"):
     import tensorflow as tf
     class KerasOpsShim:
         def __getattr__(self, name):
-            # Redirect all Keras 3 'ops' calls (e.g. keras.ops.shape) to base TensorFlow
+            import tensorflow as tf
+            # Map Keras 3 op names to TensorFlow equivalents
+            if name == "concatenate":
+                return tf.concat
+            if name == "stack":
+                return tf.stack
             return getattr(tf, name)
         @property
         def shape(self):

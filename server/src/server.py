@@ -7,6 +7,11 @@ if not hasattr(keras, "ops"):
     import tensorflow as tf
     class KerasOpsShim:
         def __getattr__(self, name):
+            import tensorflow as tf
+            if name == "concatenate":
+                return tf.concat
+            if name == "stack":
+                return tf.stack
             return getattr(tf, name)
         @property
         def shape(self):
