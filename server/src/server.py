@@ -100,7 +100,8 @@ async def debug_env():
         "tf_keras": tf_keras_ver,
         "python": sys.version,
         "has_ops_shim": hasattr(keras, "ops"),
-        "shim_test": shim_test
+        "shim_test": shim_test,
+        "has_tf_concatenate_patch": hasattr(tf, "concatenate") and tf.concatenate == tf.concat
     }
 
 @app.on_event("startup")
