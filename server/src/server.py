@@ -65,7 +65,8 @@ async def debug_env():
         "tensorflow": tf.__version__,
         "keras": keras.__version__,
         "tf_keras": tf_keras_ver,
-        "python": sys.version
+        "python": sys.version,
+        "has_ops_shim": hasattr(keras, "ops")
     }
 
 @app.on_event("startup")
