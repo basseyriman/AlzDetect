@@ -2,8 +2,11 @@ import os
 import sys
 
 # 1. Global Keras 3 Compatibility Shim for Keras 2 environments
-import keras
-import tensorflow as tf
+# Global TensorFlow Patching for legacy compatibility
+if not hasattr(tf, "concatenate"):
+    tf.concatenate = tf.concat
+if not hasattr(tf, "stack"):
+    tf.stack = tf.stack
 
 class KerasOpsShim:
     def __init__(self, original_ops=None):

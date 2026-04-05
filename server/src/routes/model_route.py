@@ -10,6 +10,12 @@ import keras
 import tensorflow as tf
 import sys
 
+# Global TensorFlow Patching for legacy compatibility
+if not hasattr(tf, "concatenate"):
+    tf.concatenate = tf.concat
+if not hasattr(tf, "stack"):
+    tf.stack = tf.stack # Just in case
+
 class KerasOpsShim:
     def __init__(self, original_ops=None):
         self.original_ops = original_ops
