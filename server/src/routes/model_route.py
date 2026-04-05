@@ -164,7 +164,8 @@ class SafeMultiHeadSelfAttention(tf.keras.layers.Layer):
         self.key_dense = tf.keras.layers.Dense(hidden_size, name="key")
         self.value_dense = tf.keras.layers.Dense(hidden_size, name="value")
         self.combine_heads = tf.keras.layers.Dense(hidden_size, name="out")
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
+        # Ignore extra kwargs like 'axes' or 'mask' from Keras 3/ops
         batch_size = tf.shape(inputs)[0]
         query = self.query_dense(inputs)
         key = self.key_dense(inputs)
@@ -192,17 +193,19 @@ class SafeTransformerBlock(tf.keras.layers.Layer):
         self.mlp_dim = mlp_dim
         self.dropout = dropout
     def build(self, input_shape):
+        hidden_size = input_shape[-1]
         self.att = SafeMultiHeadSelfAttention(num_heads=self.num_heads, name="MultiHeadDotProductAttention_1")
         self.mlpblock = tf.keras.Sequential([
             tf.keras.layers.Dense(self.mlp_dim, activation="linear", name=f"{self.name}/Dense_0"),
-            tf.keras.layers.Lambda(lambda x: tf.keras.activations.gelu(x, approximate=False))
+            tf.keras.layers.Lambda(lambda x: tf.keras.activations.gelu(x, approximate=False)),
+            tf.keras.layers.Dense(hidden_size, name=f"{self.name}/Dense_1")
         ])
         self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6, name="LayerNorm_0")
         self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6, name="LayerNorm_1")
         self.dropout_layer = tf.keras.layers.Dropout(self.dropout)
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         x = self.layernorm1(inputs)
-        x, weights = self.att(x)
+        x, weights = self.att(x, **kwargs)
         x = self.dropout_layer(x)
         x = x + inputs
         y = self.layernorm2(x)
@@ -213,6 +216,48 @@ class SafeTransformerBlock(tf.keras.layers.Layer):
         config.update({"num_heads": self.num_heads, "mlp_dim": self.mlp_dim, "dropout": self.dropout})
         return config
 
+def build_safe_vit_b32(include_top=False):
+    """
+    Constructs a ViT-B/32 backbone using Safe layers to avoid Keras 3 versioning conflicts.
+    Replicates the vit-keras architecture exactly for seamless weight loading.
+    """
+    backbone_inputs = tf.keras.layers.Input(shape=(224, 224, 3))
+    
+    # Embedding Layer: Conv2D Patching
+    x = tf.keras.layers.Conv2D(768, kernel_size=32, strides=32, padding="valid", name="embedding")(backbone_inputs)
+    h, w = x.shape[1], x.shape[2]
+    x = tf.keras.layers.Reshape((h * w, 768))(x)
+    
+    # Class Token and Positional Embedding
+    class_token_layer = SafeClassToken(name="class_token")
+    x = class_token_layer(x)
+    
+    posembed_layer = SafeAddPositionEmbs(name="Transformer/posembed_input")
+    x = posembed_layer(x)
+    
+    # 12 Transformer Blocks
+    for n in range(12):
+        block = SafeTransformerBlock(num_heads=12, mlp_dim=3072, dropout=0.1, name=f"Transformer/encoderblock_{n}")
+        x, _ = block(x)
+    
+    # LayerNorm and Final Output Extraction
+    x = tf.keras.layers.LayerNormalization(epsilon=1e-6, name="Transformer/encoder_norm")(x)
+    x = tf.keras.layers.Lambda(lambda t: t[:, 0], name="extract_cls_token")(x)
+    
+    # Create the backbone model
+    backbone = tf.keras.Model(backbone_inputs, x, name="vit-b32")
+
+    if include_top:
+        inputs = tf.keras.layers.Input(shape=(224, 224, 3))
+        # Use backbone as a layer
+        x = backbone(inputs, training=False)
+        x = tf.keras.layers.Dense(256, activation='relu', name="dense_40")(x)
+        x = tf.keras.layers.Dropout(0.4, name="dropout_20")(x)
+        outputs = tf.keras.layers.Dense(4, activation='softmax', name="dense_41")(x)
+        return tf.keras.Model(inputs, outputs)
+    else:
+        return backbone
+
 def load_model_if_needed():
     global MODEL
     if MODEL is None:
@@ -221,23 +266,9 @@ def load_model_if_needed():
             if not os.path.exists(MODEL_PATH):
                 raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
 
-            # ATTEMPT 2: Re-build architecture and load weights (weights-only H5)
-            # Directly use this to avoid `load_model` native C++ segfault in TF 2.15/2.16
-            inputs = tf.keras.layers.Input(shape=(224, 224, 3))
-            base_vit = vit.vit_b32(
-                image_size=224,
-                pretrained=True,
-                include_top=False,
-                pretrained_top=False
-            )
-            base_vit._name = "vit-b32"
-            x = base_vit(inputs, training=False)
-            x = tf.keras.layers.Dense(256, activation='relu',
-                                      kernel_regularizer=tf.keras.regularizers.L2(0.01),
-                                      name="dense_40")(x)
-            x = tf.keras.layers.Dropout(0.4, name="dropout_20")(x)
-            outputs = tf.keras.layers.Dense(4, activation='softmax', name="dense_41")(x)
-            MODEL = tf.keras.Model(inputs, outputs)
+            # USE SAFE BUILD: Re-build entire architecture with Safe layers to bypass Render's Keras 3 issues
+            print("Building model with Safe Clinical Architecture...")
+            MODEL = build_safe_vit_b32(include_top=True)
             MODEL.load_weights(MODEL_PATH, by_name=True)
             print("Model architecture built and weights loaded successfully")
 
