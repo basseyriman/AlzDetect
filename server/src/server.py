@@ -51,7 +51,7 @@ app.include_router(root_route, prefix="", tags=["root"])
 app.include_router(model_route)
 app.include_router(test_route)
 
-@app.get("/debug_env")
+@app.get("/debug_v5")
 async def debug_env():
     import tensorflow as tf
     import keras
