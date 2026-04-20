@@ -48,9 +48,8 @@ model_route = APIRouter(prefix="/model", tags=["model"])
 
 # Get the absolute path to the model file
 CURRENT_DIR = Path(__file__).parent.resolve()
-PROJECT_ROOT = CURRENT_DIR.parent.parent
-# The weights are in a separate repo at the same level as the API project
-MODEL_PATH = os.path.join(PROJECT_ROOT.parent.parent, 'alz-detect-weights-repo', "RimanBassey_model.h5")
+# The weights are in a separate folder at the same level as the API project
+MODEL_PATH = os.path.join(PROJECT_ROOT.parent, 'alz-detect-weights', "RimanBassey_model.h5")
 
 
 # Defining custom F1 Score metric
