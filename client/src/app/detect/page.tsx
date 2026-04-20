@@ -47,6 +47,8 @@ export default function DetectPage() {
   const [displayedTreatment, setDisplayedTreatment] = useState<string>("");
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isLoadingTreatment, setIsLoadingTreatment] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalDetails, setModalDetails] = useState({ title: '', message: '', suggestion: '' });
 
   // Auto-scroll to result when available
   useEffect(() => {
@@ -125,8 +127,19 @@ export default function DetectPage() {
       setResult(analysisResult);
     } catch (error) {
       console.error("Error uploading file:", error);
-      if (axios.isAxiosError(error)) {
-        toast.error(error.response?.data?.detail || "Connection error: The server might be taking too long to respond. Please try again.");
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        const detail = error.response?.data?.detail;
+        if (detail && typeof detail === 'object') {
+          // Validation modal for MRI check failures
+          setModalDetails({
+            title: detail.error || 'Invalid Scan Type',
+            message: detail.message || 'The uploaded image is not supported.',
+            suggestion: detail.suggestion || 'Ensure the image is a grayscale MRI slice on a dark background for accurate analysis.'
+          });
+          setModalOpen(true);
+        } else {
+          toast.error(typeof detail === 'string' ? detail : 'Invalid request. Please try again.');
+        }
       } else {
         toast.error("Connection error: The server might be taking too long to respond. Please try again.");
       }
@@ -188,8 +201,46 @@ export default function DetectPage() {
     }
   };
 
+  const ValidationModal = () => {
+    if (!modalOpen) return null;
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+        <div className="bg-white/95 rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl border border-white relative overflow-hidden animate-scale-in">
+          <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
+          <div className="flex flex-col items-center text-center space-y-6">
+            <div className="w-20 h-20 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-500 shadow-inner">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m14.5 9-5 5"/><path d="m9.5 9 5 5"/></svg>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight capitalize">
+                {modalDetails.title}
+              </h3>
+              <p className="text-slate-500 font-medium leading-relaxed">
+                {modalDetails.message}
+              </p>
+            </div>
+            <div className="bg-slate-50 rounded-3xl p-6 w-full text-left border border-slate-100 flex gap-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500 shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              <p className="text-xs text-slate-600 font-bold leading-relaxed">
+                <span className="text-indigo-600 uppercase tracking-widest block mb-1">Clinical Protocol:</span>
+                {modalDetails.suggestion}
+              </p>
+            </div>
+            <button
+              onClick={() => setModalOpen(false)}
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all uppercase tracking-widest"
+            >
+              Acknowledge &amp; Dismiss
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] neural-gradient pb-20">
+      <ValidationModal />
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 lg:pt-20">
