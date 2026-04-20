@@ -36,11 +36,12 @@ __pycache__/
 env/
 venv/
 
-# Local Alzheimer Data & Weights (1GB+)
-alz-detect-weights-repo/
-alz-detect-engine-hf/
-*.h5
-*.keras
+# Local Alzheimer Data & Weights (Tracked via LFS where applicable)
+# alz-detect-weights/
+# alz-detect-api/
+# Large Files (Tracked via Git LFS)
+# *.h5
+# *.keras
 *.png
 *.jpg
 *.jpeg
