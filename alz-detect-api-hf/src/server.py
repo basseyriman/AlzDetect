@@ -1,6 +1,9 @@
 import os
 import sys
 
+# CRITICAL: Must be set BEFORE importing Keras/TensorFlow to ensure peak medical accuracy (198 neural weights, not Keras 3's 196) 
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
 # 1. Global Keras 3 Compatibility Shim
 import keras
 if not hasattr(keras, "ops"):

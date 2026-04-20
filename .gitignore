@@ -35,3 +35,21 @@ __pycache__/
 .Python
 env/
 venv/
+
+# Local Alzheimer Data & Weights (1GB+)
+alz-detect-weights-repo/
+alz-detect-engine-hf/
+*.h5
+*.keras
+*.png
+*.jpg
+*.jpeg
+
+# Test Scripts
+test_*.py
+inspect_*.py
+compare_weights.py
+count_weights.py
+generate_test_mri.py
+result.json
+*.log

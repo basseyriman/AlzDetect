@@ -1,13 +1,38 @@
 import io
 import os
+import sys
+import types
 import base64
 from pathlib import Path
 
-# --- Legacy Compatibility Shim for vit-keras ---
-import sys
-import types
-sys.modules['tensorflow_addons'] = types.ModuleType('tensorflow_addons')
-# -----------------------------------------------
+# CRITICAL: Ensures we load 198 weights correctly instead of Keras 3's 196 limitation.
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
+# 1. Global Keras 3 Compatibility Shim for Keras 2.15/2.16 environments
+import keras
+if not hasattr(keras, "ops"):
+    import tensorflow as tf
+    class KerasOpsShim:
+        def __getattr__(self, name):
+            return getattr(tf, name)
+        @property
+        def shape(self):
+            import tensorflow as tf
+            return tf.shape
+    keras.ops = KerasOpsShim()
+
+# 2. Complete TFA Mock to prevent import errors in vit-keras
+if "tensorflow_addons" not in sys.modules:
+    import tensorflow as tf
+    _tfa = types.ModuleType("tensorflow_addons")
+    _tfa.layers = types.ModuleType("tensorflow_addons.layers")
+    _tfa.optimizers = types.ModuleType("tensorflow_addons.optimizers")
+    _tfa.activations = types.ModuleType("tensorflow_addons.activations")
+    _tfa.activations.gelu = tf.nn.gelu
+    sys.modules["tensorflow_addons"] = _tfa
+    sys.modules["tensorflow_addons.layers"] = _tfa.layers
+    sys.modules["tensorflow_addons.optimizers"] = _tfa.optimizers
+    sys.modules["tensorflow_addons.activations"] = _tfa.activations
 
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from rich.pretty import pprint
@@ -24,7 +49,8 @@ model_route = APIRouter(prefix="/model", tags=["model"])
 # Get the absolute path to the model file
 CURRENT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = CURRENT_DIR.parent.parent
-MODEL_PATH = os.path.join(PROJECT_ROOT, 'src', "model", "RimanBassey_model.h5")
+# The weights are in a separate repo at the same level as the API project
+MODEL_PATH = os.path.join(PROJECT_ROOT.parent.parent, 'alz-detect-weights-repo', "RimanBassey_model.h5")
 
 
 # Defining custom F1 Score metric
@@ -51,6 +77,39 @@ class F1Score(tf.keras.metrics.Metric):
 # Global variables
 MODEL = None
 CLASS_NAMES = ["MildDemented", "ModerateDemented", "NonDemented", "VeryMildDemented"]
+
+def is_probably_mri(image_np):
+    """
+    Heuristic validation to ensure the uploaded image is actually a brain MRI.
+    Checks for: 1. Grayscale nature, 2. Dark periphery (black background).
+    """
+    try:
+        # Check 1: Color Saturation (MRI is monochromatic)
+        hsv = cv2.cvtColor(image_np, cv2.COLOR_RGB2HSV)
+        avg_saturation = np.mean(hsv[:, :, 1])
+        if avg_saturation > 35:  # MRI slices have very low saturation
+            return False, "Invalid Scan Type: The uploaded image is not supported. Please ensure all uploaded files are standard clinical MRI scans for accurate analysis."
+
+        # Check 2: Peripheral Darkness (Standard bore-centered capture)
+        # Check the 4 corners (10% of image size)
+        h, w = image_np.shape[:2]
+        ch, cw = int(h * 0.1), int(w * 0.1)
+        corners = [
+            image_np[0:ch, 0:cw],       # top-left
+            image_np[0:ch, w-cw:w],     # top-right
+            image_np[h-ch:h, 0:cw],     # bottom-left
+            image_np[h-ch:h, w-cw:w]    # bottom-right
+        ]
+        avg_corner_intensity = np.mean([np.mean(c) for c in corners])
+        if avg_corner_intensity > 60:
+            return False, "Invalid Scan Type: The uploaded image is not supported. Please ensure all uploaded files are standard clinical MRI scans for accurate analysis."
+
+        return True, "Valid MRI architecture detected."
+    except Exception as e:
+        # If check fails for technical reasons, we allow it to proceed to the model 
+        # (which might still handle it) rather than blocking the user.
+        print(f"Validation check error: {e}")
+        return True, "Validation bypassed."
 
 
 def load_model_if_needed():
@@ -95,30 +154,36 @@ def load_model_if_needed():
 def generate_attention_map(image_array):
     global MODEL
     try:
-        # image_array is (1, 224, 224, 3) and normalized [0, 1]
+        # image_array is (1, 224, 224, 3) and normalized via vit.preprocess_inputs
         vit_model = MODEL.get_layer("vit-b32")
         
-        # PORTABLE ATTENTION ROLLOUT IMPLEMENTATION: 
-        # Since standard library utilities discard attention weights 
-        # during model building, we perform a manual forward pass through the 
-        # sub-layers to capture exact focus data.
         print("Extracting attention map via manual layer-by-layer rollout...")
         
         try:
-            # Prepare image for ViT specific preprocessing
-            img = (image_array[0] * 255).astype('uint8')
-            img_resized = cv2.resize(img, (224, 224))
-            X = vit.preprocess_inputs(img_resized)[np.newaxis, :]
+            # Step 1: Run through embedding layer
+            curr_x = tf.cast(image_array, tf.float32)
+            embedding_layer = vit_model.get_layer("embedding")
+            curr_x = embedding_layer(curr_x)
             
-            # Step-by-step Execution through the sub-model:
-            # 1. Input Transformation & Positional Embedding
-            curr_x = tf.cast(X, tf.float32)
-            curr_x = vit_model.get_layer("embedding")(curr_x)
-            curr_x = tf.reshape(curr_x, (-1, curr_x.shape[1] * curr_x.shape[2], curr_x.shape[3]))
+            # Dynamically handle embedding output shape:
+            # embedding outputs (batch, h, w, hidden) for conv patch embedding
+            # OR (batch, num_patches, hidden) already flattened
+            if len(curr_x.shape) == 4:
+                # (batch, h, w, hidden) -> flatten patches
+                batch_size = tf.shape(curr_x)[0]
+                h = curr_x.shape[1]
+                w = curr_x.shape[2]
+                hidden = curr_x.shape[3]
+                curr_x = tf.reshape(curr_x, (batch_size, h * w, hidden))
+            # Now curr_x is (batch, num_patches, hidden)
+            
+            # Step 2: Add class token
             curr_x = vit_model.get_layer("class_token")(curr_x)
+            
+            # Step 3: Add positional embeddings
             curr_x = vit_model.get_layer("Transformer/posembed_input")(curr_x)
             
-            # 2. Block-by-Block Processing (Capture weights from each Transformer stage)
+            # Step 4: Block-by-Block Processing (Capture weights from each Transformer stage)
             all_weights = []
             for n in range(12):
                 block = vit_model.get_layer(f"Transformer/encoderblock_{n}")
@@ -126,14 +191,15 @@ def generate_attention_map(image_array):
                 curr_x, weights = block(curr_x, training=False)
                 all_weights.append(weights.numpy())
             
-            # 3. Compute Attention Rollout (Recursive Matrix Multiplication)
-            # This follows the technique from "Quantifying Attention Flow in Transformers"
-            num_layers = len(all_weights)
-            grid_size = int(np.sqrt(all_weights[0].shape[-1] - 1))
-            eye = np.eye(grid_size**2 + 1)
+            # Step 5: Attention Rollout ("Quantifying Attention Flow in Transformers")
+            total_tokens = all_weights[0].shape[-1]  # includes class token
+            num_patches = total_tokens - 1
+            grid_size = int(np.sqrt(num_patches))
+            
+            eye = np.eye(total_tokens)
             v = eye.copy()
             
-            for i in range(num_layers):
+            for i in range(len(all_weights)):
                 # Average attention across all heads
                 w = all_weights[i][0].mean(axis=0)
                 # Add Identity for Residual connections and Re-normalize
@@ -141,13 +207,12 @@ def generate_attention_map(image_array):
                 w = w / w.sum(axis=-1, keepdims=True)
                 v = np.matmul(w, v)
             
-            # 4. Extract Final Heatmap from the Class Token's Relation to Input Patches
+            # Step 6: Extract heatmap from Class Token -> Patch attention
             mask = v[0, 1:].reshape(grid_size, grid_size)
-            # Normalize to 0-1 range for vibrant colormapping
             mask = (mask - mask.min()) / (mask.max() - mask.min() + 1e-8)
             mask_resized = cv2.resize(mask, (224, 224))
             
-            print("Attention map rollout calculated successfully!")
+            print(f"Attention map rollout successful! Grid: {grid_size}x{grid_size}")
             return mask_resized
 
         except Exception as e:
@@ -161,6 +226,7 @@ def generate_attention_map(image_array):
         import traceback
         traceback.print_exc()
         return None
+
 
 
 def plot_attention_overlay(image_array, attention_map):
@@ -205,6 +271,8 @@ def plot_attention_overlay(image_array, attention_map):
     except Exception as e:
         print(f"Error plotting attention overlay: {str(e)}")
         return None
+    finally:
+        plt.close('all')
 
 
 @model_route.get('/')
@@ -245,9 +313,23 @@ async def predict_model(file: UploadFile):
             # Store original image array for visualization
             original_img_array = img_array.copy()
 
-            # Normalize and add batch dimension
-            img_array = img_array / 255.0
-            img_array = np.expand_dims(img_array, axis=0)
+            # --- NEW: MRI VALIDATION LAYER ---
+            is_valid, reason = is_probably_mri(original_img_array)
+            if not is_valid:
+                print(f"Validation Rejected: {reason}")
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "Invalid Scan Type",
+                        "message": "The uploaded image is not supported.",
+                        "suggestion": "Ensure the image is a grayscale MRI slice on a dark background for accurate analysis."
+                    }
+                )
+            print("Validation Passed: Image confirmed as MRI-like.")
+            # --------------------------------
+
+            # Use ViT-specific preprocessing for 90%+ accuracy
+            img_array = vit.preprocess_inputs(img_array)[np.newaxis, :]
 
             print(f"Input shape: {img_array.shape}")  # Debug print
 
@@ -284,8 +366,10 @@ async def predict_model(file: UploadFile):
             predicted_class = CLASS_NAMES[np.argmax(prediction[0])]
             confidence = float(np.max(prediction[0]))
 
+            import gc
             print(type(visualization))
-            print(visualization)
+            print(f"Visualization string length: {len(visualization) if visualization else 0}")
+            gc.collect()
 
             return {
                 "file_name": file.filename,

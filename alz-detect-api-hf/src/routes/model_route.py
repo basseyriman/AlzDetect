@@ -5,6 +5,9 @@ import types
 import base64
 from pathlib import Path
 
+# CRITICAL: Ensures we load 198 weights correctly instead of Keras 3's 196 limitation.
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
 # 1. Global Keras 3 Compatibility Shim for Keras 2.15/2.16 environments
 import keras
 if not hasattr(keras, "ops"):
@@ -46,7 +49,8 @@ model_route = APIRouter(prefix="/model", tags=["model"])
 # Get the absolute path to the model file
 CURRENT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = CURRENT_DIR.parent.parent
-MODEL_PATH = os.path.join(PROJECT_ROOT, 'src', "model", "RimanBassey_model.h5")
+# The weights are in a separate repo at the same level as the API project
+MODEL_PATH = os.path.join(PROJECT_ROOT.parent.parent, 'alz-detect-weights-repo', "RimanBassey_model.h5")
 
 
 # Defining custom F1 Score metric
@@ -73,6 +77,39 @@ class F1Score(tf.keras.metrics.Metric):
 # Global variables
 MODEL = None
 CLASS_NAMES = ["MildDemented", "ModerateDemented", "NonDemented", "VeryMildDemented"]
+
+def is_probably_mri(image_np):
+    """
+    Heuristic validation to ensure the uploaded image is actually a brain MRI.
+    Checks for: 1. Grayscale nature, 2. Dark periphery (black background).
+    """
+    try:
+        # Check 1: Color Saturation (MRI is monochromatic)
+        hsv = cv2.cvtColor(image_np, cv2.COLOR_RGB2HSV)
+        avg_saturation = np.mean(hsv[:, :, 1])
+        if avg_saturation > 35:  # MRI slices have very low saturation
+            return False, "Invalid Scan Type: The uploaded image is not supported. Please ensure all uploaded files are standard clinical MRI scans for accurate analysis."
+
+        # Check 2: Peripheral Darkness (Standard bore-centered capture)
+        # Check the 4 corners (10% of image size)
+        h, w = image_np.shape[:2]
+        ch, cw = int(h * 0.1), int(w * 0.1)
+        corners = [
+            image_np[0:ch, 0:cw],       # top-left
+            image_np[0:ch, w-cw:w],     # top-right
+            image_np[h-ch:h, 0:cw],     # bottom-left
+            image_np[h-ch:h, w-cw:w]    # bottom-right
+        ]
+        avg_corner_intensity = np.mean([np.mean(c) for c in corners])
+        if avg_corner_intensity > 60:
+            return False, "Invalid Scan Type: The uploaded image is not supported. Please ensure all uploaded files are standard clinical MRI scans for accurate analysis."
+
+        return True, "Valid MRI architecture detected."
+    except Exception as e:
+        # If check fails for technical reasons, we allow it to proceed to the model 
+        # (which might still handle it) rather than blocking the user.
+        print(f"Validation check error: {e}")
+        return True, "Validation bypassed."
 
 
 def load_model_if_needed():
@@ -275,6 +312,21 @@ async def predict_model(file: UploadFile):
 
             # Store original image array for visualization
             original_img_array = img_array.copy()
+
+            # --- NEW: MRI VALIDATION LAYER ---
+            is_valid, reason = is_probably_mri(original_img_array)
+            if not is_valid:
+                print(f"Validation Rejected: {reason}")
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "Invalid Scan Type",
+                        "message": "The uploaded image is not supported.",
+                        "suggestion": "Ensure the image is a grayscale MRI slice on a dark background for accurate analysis."
+                    }
+                )
+            print("Validation Passed: Image confirmed as MRI-like.")
+            # --------------------------------
 
             # Use ViT-specific preprocessing for 90%+ accuracy
             img_array = vit.preprocess_inputs(img_array)[np.newaxis, :]
