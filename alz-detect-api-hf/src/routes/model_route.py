@@ -332,6 +332,8 @@ async def predict_model(file: UploadFile):
 
             print(f"Input shape: {img_array.shape}")  # Debug print
 
+        except HTTPException as he:
+            raise he
         except Exception as e:
             print(f"Error preprocessing image: {str(e)}")
             print(f"Original image shape: {np.array(img).shape}")  # Debug print
@@ -378,6 +380,8 @@ async def predict_model(file: UploadFile):
                 "attention_map_visualization": visualization if visualization else None
             }
 
+        except HTTPException as he:
+            raise he
         except Exception as e:
             print(f"Error during prediction: {str(e)}")
             print(f"Error type: {type(e)}")
